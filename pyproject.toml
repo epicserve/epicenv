@@ -15,9 +15,6 @@ dependencies = [
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.uv.workspace]
-members = ["test_project"]
-
 [dependency-groups]
 dev = [
     "django>=5.1.2",
