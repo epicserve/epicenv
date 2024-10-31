@@ -10,6 +10,25 @@ requires-python = ">=3.10"
 dependencies = [
     "environs[django]>=11.0.0",
 ]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Framework :: Django",
+    "Framework :: Django :: 4.2",
+    "Framework :: Django :: 5.1",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Build Tools",
+]
+[project.urls]
+Source = "https://github.com/epicserve/django-environs"
+Documentation = "https://github.com/epicserve/django-environs"
 
 [build-system]
 requires = ["hatchling"]
