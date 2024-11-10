@@ -3,7 +3,7 @@
 A Django package that enhances the [environs](https://github.com/sloria/environs) library by adding management commands to simplify environment variable handling.
 
 ## Management Commands
-- `create_env_file`: Creates a new `.env` file with default values.
+- `create_env_file`: Creates a new `.env` file with default values, help text, and initial value hooks for environment variables.
 - `diff_env_file`: Displays differences between your `.env` file and the environment variables in your Django settings.
 
 ## Installation
