@@ -27,6 +27,11 @@ format: format_just format_python
 
 @pre_commit: format lint test
 
+publish:
+    #!/usr/bin/env bash
+    echo -e '\nTo publish to PyPI, first run `just version_bump <major|minor|patch>` and push up the '\
+    "changes, then create a release in GitHub (https://github.com/epicserve/django-envtools/releases).\n"
+
 @test *FLAGS:
     uv run pytest {{ FLAGS }}
 
