@@ -3,7 +3,7 @@ from pathlib import Path
 from django.core.management import BaseCommand
 from django.utils import timezone
 
-from django_environs import get_dot_env_file_str
+from django_envtools import get_dot_env_file_str
 
 
 class Command(BaseCommand):
@@ -30,7 +30,7 @@ class Command(BaseCommand):
         if path.exists() is True:
             # move file to a backup file
             now = timezone.now()
-            new_file_path = path.with_name(f'.env.{now.strftime("%Y%m%d%H%M%S")}')
+            new_file_path = path.with_name(f".env.{now.strftime('%Y%m%d%H%M%S')}")
             path.rename(new_file_path)
 
             new_file_path_rel_str = new_file_path.relative_to(cwd)

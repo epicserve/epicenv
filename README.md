@@ -1,4 +1,4 @@
-# Django Environs
+# Django Envtools
 
 A Django package that enhances the [environs](https://github.com/sloria/environs) library by adding management commands to simplify environment variable handling.
 
@@ -11,21 +11,21 @@ A Django package that enhances the [environs](https://github.com/sloria/environs
 Install via `uv` or `pip`:
 
 ```bash
-uv add django-environs
+uv add django-envtools
 
 # or
 
-pip install django-environs
+pip install django-envtools
 ```
 
 ## Usage
 
-First, add `django_environs` to your `INSTALLED_APPS` in `settings.py`:
+First, add `django_envtools` to your `INSTALLED_APPS` in `settings.py`:
 
 ```python  
 INSTALLED_APPS = [
     ...
-    'django_environs',
+    'django_envtools',
 ]
 ```
 
@@ -38,7 +38,7 @@ For example, if you have the following in your `settings.py`:
 
 ```python
 from pathlib import Path
-from django_environs import Env
+from django_envtools import Env
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 

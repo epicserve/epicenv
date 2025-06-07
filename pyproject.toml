@@ -1,5 +1,5 @@
 [project]
-name = "django-environs"
+name = "django-envtools"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -27,8 +27,8 @@ classifiers = [
     "Topic :: Software Development :: Build Tools",
 ]
 [project.urls]
-Source = "https://github.com/epicserve/django-environs"
-Documentation = "https://github.com/epicserve/django-environs"
+Source = "https://github.com/epicserve/django-envtools"
+Documentation = "https://github.com/epicserve/django-envtools"
 
 [build-system]
 requires = ["hatchling"]

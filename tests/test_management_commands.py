@@ -25,19 +25,14 @@ class TestCreateEnvFileCommand(TestCase):
         )
         assert re.search(r"SECRET_KEY=.+\n", env_file_content) is not None
 
-        assert (
-            "# Set to `on` to enable debugging\n" "# type: bool\n" "# default: False\n" "# DEBUG=\n"
-        ) in env_file_content
+        assert ("# Set to `on` to enable debugging\n# type: bool\n# default: False\n# DEBUG=\n") in env_file_content
 
         assert (
-            (
-                "# List of allowed hosts (e.g., `127.0.0.1,example.com`), see https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts for more information\n"  # noqa: E501
-                "# type: list\n"
-                "# default: []\n"
-                "# ALLOWED_HOSTS=\n"
-            )
-            in env_file_content
-        )
+            "# List of allowed hosts (e.g., `127.0.0.1,example.com`), see https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts for more information\n"  # noqa: E501
+            "# type: list\n"
+            "# default: []\n"
+            "# ALLOWED_HOSTS=\n"
+        ) in env_file_content
 
         assert (
             "# Database URL, see https://github.com/jazzband/dj-database-url for more information\n"
@@ -71,8 +66,8 @@ class TestCreateEnvFileCommand(TestCase):
         call_command("diff_env_file", stdout=out)
         output = out.getvalue()
 
-        assert ("Environment variables Missing in .env file with default values:\n" "- DATABASE_URL\n") in output
+        assert ("Environment variables Missing in .env file with default values:\n- DATABASE_URL\n") in output
 
         assert (
-            "Environment variables in .env file that are not defined in your Django settings:\n" "- NEW_VAR\n" "- FOO\n"
+            "Environment variables in .env file that are not defined in your Django settings:\n- NEW_VAR\n- FOO\n"
         ) in output

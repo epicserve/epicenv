@@ -3,7 +3,7 @@ from pathlib import Path
 
 from django.core.management import BaseCommand
 
-from django_environs import env_variables
+from django_envtools import env_variables
 
 
 class Command(BaseCommand):
@@ -52,4 +52,4 @@ class Command(BaseCommand):
                 self.style.WARNING("\nEnvironment variables in .env file that are not defined in your Django settings:")
             )
             for var in orphaned_vars:
-                self.stdout.write(f'- {var.replace("# ", "")}')
+                self.stdout.write(f"- {var.replace('# ', '')}")

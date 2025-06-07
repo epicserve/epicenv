@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 
-from django_environs import Env
+from django_envtools import Env
 
 """
 Django settings for config project.
@@ -57,7 +57,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "django_environs",
+    "django_envtools",
 ]
 
 MIDDLEWARE = [
