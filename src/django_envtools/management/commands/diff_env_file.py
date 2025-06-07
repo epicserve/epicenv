@@ -52,4 +52,4 @@ class Command(BaseCommand):
                 self.style.WARNING("\nEnvironment variables in .env file that are not defined in your Django settings:")
             )
             for var in orphaned_vars:
-                self.stdout.write(f'- {var.replace("# ", "")}')
+                self.stdout.write(f"- {var.replace('# ', '')}")
