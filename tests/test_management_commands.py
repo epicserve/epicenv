@@ -25,7 +25,7 @@ class TestCreateEnvFileCommand(TestCase):
         )
         assert re.search(r"SECRET_KEY=.+\n", env_file_content) is not None
 
-        assert ("# Set to `on` to enable debugging\n# type: bool\n# default: False\n# DEBUG=\n") in env_file_content
+        assert ("# Set to `on` to enable debugging\n# type: bool\n# default: False\nDEBUG=on\n") in env_file_content
 
         assert (
             "# List of allowed hosts (e.g., `127.0.0.1,example.com`), see https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts for more information\n"  # noqa: E501

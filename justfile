@@ -52,4 +52,3 @@ version_bump bump:
     git commit -m "${COMMIT_MESSAGE}"
     git tag -a "v${NEW_VERSION}" -m "Release v${NEW_VERSION}"
     just _start_command "${COMMIT_MESSAGE}"
-

@@ -14,7 +14,9 @@ MANAGEMENT_COMMANDS = ["create_env_file", "diff_env_file", "pytest"]
 
 @lru_cache
 def _is_command_or_test():
-    return any(arg.endswith(command) for command in MANAGEMENT_COMMANDS for arg in sys.argv)
+    is_test = any([arg.startswith("test_") for arg in sys.argv])
+    is_command = any(arg.endswith(command) for command in MANAGEMENT_COMMANDS for arg in sys.argv)
+    return is_command or is_test
 
 
 class Env:
@@ -40,6 +42,7 @@ class Env:
         environ_kwargs = environ_kwargs or {}
         help_text = environ_kwargs.pop("help_text", None)
         initial = environ_kwargs.pop("initial", None)
+        initial_func = environ_kwargs.pop("initial_func", None)
 
         if _is_command_or_test() is True:
             env_variables[environ_args[0]] = {
@@ -47,6 +50,7 @@ class Env:
                 "default": environ_kwargs.get("default"),
                 "help_text": help_text,
                 "initial": initial,
+                "initial_func": initial_func,
             }
 
         try:
@@ -101,6 +105,7 @@ def get_dot_env_file_str() -> str:
     )
     for key, data in env_variables.items():
         initial = data.get("initial", None)
+        initial_func = data.get("initial_func", None)
         val = ""
 
         if data["help_text"] is not None:
@@ -110,11 +115,13 @@ def get_dot_env_file_str() -> str:
         if data["default"] is not None:
             env_str += f"# default: {data['default']}\n"
 
-        if initial:
-            if callable(initial):
-                val = initial()
-            elif isinstance(initial, str):
-                val = get_callable(initial)()
+        if initial_func:
+            if callable(initial_func):
+                val = initial_func()
+            elif isinstance(initial_func, str):
+                val = get_callable(initial_func)()
+        elif initial is not None:
+            val = initial
 
         if val == "" and data["default"] is not None:
             env_str += f"# {key}={val}\n\n"

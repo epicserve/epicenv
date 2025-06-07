@@ -29,10 +29,14 @@ INSTALLED_APPS = [
 ]
 ```
 
-Then, update your settings to use the `Env` class to read environment variables. Django Environs adds two keyword
-arguments that regular `environs` doesn't have: `help_text` and `initial`. The `help_text` argument provides guidance on
-each environment variable, and the `initial` argument generates an initial value for `.env` using either a callable or a
-string path to a callable.
+Then, update your settings to use the `Env` class to read environment variables. Django Envtools adds three keyword
+arguments that `environs` doesn't have: `help_text`, `initial_func`, and `initial`.
+
+* `help_text`: Provides help text for each environment variable.
+* `initial_func`: A callable or a string path to a callable that generates an initial value when runing the
+   `create_env_file` management command.
+* `initial`: Set an initial value for environment variable when running the `create_env_file` management command. If
+  `initial_func` is provided, this value will be ignored.
 
 For example, if you have the following in your `settings.py`:
 
@@ -49,12 +53,12 @@ env.read_env(BASE_DIR / ".env")
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env.str(
     "SECRET_KEY",
+    initial_func="django.core.management.utils.get_random_secret_key",
     help_text="Django's secret key, see https://docs.djangoproject.com/en/dev/ref/settings/#secret-key for more information",
-    initial="django.core.management.utils.get_random_secret_key",
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env.bool("DEBUG", default=False, help_text="Set to `on` to enable debugging")
+DEBUG = env.bool("DEBUG", default=False, initial="on", help_text="Set to `on` to enable debugging")
 
 ALLOWED_HOSTS = env.list(
     "ALLOWED_HOSTS",

@@ -34,11 +34,11 @@ SECRET_KEY = env.str(
     "SECRET_KEY",
     help_text="Django's secret key, see https://docs.djangoproject.com/en/dev/ref/settings/#secret-key for "
     "more information",
-    initial="django.core.management.utils.get_random_secret_key",
+    initial_func="django.core.management.utils.get_random_secret_key",
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env.bool("DEBUG", default=False, help_text="Set to `on` to enable debugging")
+DEBUG = env.bool("DEBUG", default=False, initial="on", help_text="Set to `on` to enable debugging")
 
 ALLOWED_HOSTS = env.list(
     "ALLOWED_HOSTS",
