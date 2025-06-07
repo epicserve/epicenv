@@ -34,9 +34,17 @@ format: format_just format_python
     uv run pytest --cov --cov-config=pyproject.toml --cov-report=html
     open htmlcov/index.html
 
-@version_bump version:
-    sed -i '' 's/version = ".*"/version = "{{ version }}"/' pyproject.toml
-    uv sync
+# Update the version of the project (bump can be 'major', 'minor', or 'patch')
+version_bump bump:
+    #!/usr/bin/env bash
+    just _start_command "Bumping version"
+    OLD_VERSION=$(uv version | awk '{print $2}')
+    echo "Current version: v${OLD_VERSION}"
+    uv version --bump {{ bump }}
     git add pyproject.toml uv.lock
-    git commit -m "Version bump to v{{ version }}"
-    just _success "Version bumped to v{{ version }}."
+    NEW_VERSION=$(uv version | awk '{print $2}')
+    COMMIT_MESSAGE="Bumped version: v${OLD_VERSION} → v${NEW_VERSION}"
+    git commit -m "${COMMIT_MESSAGE}"
+    git tag -a "v${NEW_VERSION}" -m "Release v${NEW_VERSION}"
+    just _start_command "${COMMIT_MESSAGE}"
+
