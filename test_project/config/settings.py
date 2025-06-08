@@ -34,7 +34,7 @@ SECRET_KEY = env.str(
     "SECRET_KEY",
     help_text="Django's secret key, see https://docs.djangoproject.com/en/dev/ref/settings/#secret-key for "
     "more information",
-    initial_func="django.core.management.utils.get_random_secret_key",
+    initial_func="django_envtools.utils.get_random_secret_key",
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!

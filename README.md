@@ -1,10 +1,26 @@
 # Django Envtools
 
-A Django package that enhances the [environs](https://github.com/sloria/environs) library by adding management commands to simplify environment variable handling.
+A Django package that enhances the [environs](https://github.com/sloria/environs) library by adding management commands and a CLI to simplify environment variable handling.
 
-## Management Commands
+## Management Commands and CLI
+Django Envtools provides both Django management commands and a standalone CLI for managing environment variables:
+
+### Django Management Commands
 - `create_env_file`: Creates a new `.env` file with default values, help text, and initial value hooks for environment variables.
 - `diff_env_file`: Displays differences between your `.env` file and the environment variables in your Django settings.
+
+### Standalone CLI
+The same functionality is available as a standalone CLI that can be used outside of Django projects:
+
+```bash
+# Create a new .env file
+django-envtools create-env-file [PATH]
+
+# Show differences between .env file and Django settings
+django-envtools diff-env-file
+```
+
+Run `django-envtools --help` or simply `django-envtools` for more information and to see all available commands.
 
 ## Installation
 
@@ -88,8 +104,7 @@ EMAIL_HOST_USER = email["EMAIL_HOST_USER"]
 EMAIL_USE_TLS = email["EMAIL_USE_TLS"]
 ```
 
-After setting up, you can run the management command `./manage.py create_env_file` to generate a `.env` file with the
-following content:
+After setting up, you can run the management command `./manage.py create_env_file` or the CLI command `django-envtools create-env-file` to generate a `.env` file with the following content:
 
 ```bash
 # This is an initial .env file generated on 2024-10-31T19:21:56.174711+00:00. Any environment variable with a default
@@ -120,8 +135,7 @@ SECRET_KEY=redacted-secret-key
 # EMAIL_URL=
 ```
 
-As the project grows, you can run `./manage.py diff_env_file` to identify differences between your `.env` file and
-`settings.py`, helping you spot missing or orphaned environment variables.
+As the project grows, you can run `./manage.py diff_env_file` or the CLI command `django-envtools diff-env-file` to identify differences between your `.env` file and `settings.py`, helping you spot missing or orphaned environment variables.
 
 An example output might look like:
 

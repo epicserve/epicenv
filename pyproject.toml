@@ -9,6 +9,8 @@ authors = [
 requires-python = ">=3.10"
 dependencies = [
     "environs[django]>=11.0.0",
+    "pip>=25.1.1",
+    "typer>=0.9.0",
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -29,6 +31,9 @@ classifiers = [
 [project.urls]
 Source = "https://github.com/epicserve/django-envtools"
 Documentation = "https://github.com/epicserve/django-envtools"
+
+[project.scripts]
+django-envtools = "django_envtools.cli:main"
 
 [build-system]
 requires = ["hatchling"]

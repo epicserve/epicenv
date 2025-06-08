@@ -9,7 +9,7 @@ import environs
 
 env_variables: dict[str, Any] = {}
 
-MANAGEMENT_COMMANDS = ["create_env_file", "diff_env_file", "pytest"]
+MANAGEMENT_COMMANDS = ["create_env_file", "diff_env_file", "pytest", "django-envtools"]
 
 
 @lru_cache
@@ -98,12 +98,12 @@ class Env:
         return self._env.read_env(*args, **kwargs)
 
 
-def get_dot_env_file_str() -> str:
+def get_dot_env_file_str(env_calls: dict) -> str:
     env_str = (
         f"# This is an initial .env file generated on {datetime.now(UTC).isoformat()}. Any environment variable with a default\n"  # noqa: E501
         "# can be safely removed or commented out. Any variable without a default must be set.\n\n"
     )
-    for key, data in env_variables.items():
+    for key, data in env_calls.items():
         initial = data.get("initial", None)
         initial_func = data.get("initial_func", None)
         val = ""

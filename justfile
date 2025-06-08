@@ -18,6 +18,7 @@ format: format_just format_python
 @format_python:
     just _start_command "Formatting Python"
     uv run ruff format
+    uv run ruff check --fix
 
 @lint: lint_python
 
