@@ -323,7 +323,81 @@ API_TOKEN = {
 }
 ```
 
-More initializers may be added in the future, such as fetching secrets from 1Password.
+**`epicenv.initializers.onepassword`** - Fetch secrets from 1Password CLI:
+
+Automatically retrieves secrets from 1Password using the `op` CLI tool during `.env` file generation. If 1Password is unavailable, it uses a descriptive fallback value.
+
+```toml
+[tool.epicenv.variables]
+# Basic usage - fetches from 1Password, uses smart fallback if unavailable
+STRIPE_API_KEY = {
+    type = "str",
+    required = true,
+    help_text = "Stripe API key for payments",
+    initial_func = "epicenv.initializers.onepassword",
+    args = ["op://Production/Stripe/api_key"]
+}
+
+# With custom fallback for local development
+DATABASE_PASSWORD = {
+    type = "str",
+    required = true,
+    help_text = "Database password",
+    initial_func = "epicenv.initializers.onepassword",
+    args = ["op://Production/Database/password"],
+    kwargs = { fallback = "local_dev_password" }
+}
+
+# Silent mode (no warnings)
+OPTIONAL_SECRET = {
+    type = "str",
+    default = "",
+    initial_func = "epicenv.initializers.onepassword",
+    args = ["op://Development/Optional/secret"],
+    kwargs = { silent = true, fallback = "" }
+}
+```
+
+**Requirements:**
+- 1Password CLI (`op`) installed and in PATH
+- Signed in to 1Password (`op signin`)
+
+**Behavior:**
+- When 1Password is available: Fetches the secret from your vault
+- When 1Password is unavailable: Uses fallback value (custom or auto-generated `[Enter VARIABLE_NAME]`)
+- Displays helpful warnings with setup instructions when 1Password is not available
+
+**1Password Reference Format:**
+The reference string follows 1Password's secret reference format:
+- `op://vault/item/field` - Basic format
+- `op://vault/item/section/field` - With section
+
+Examples:
+- `op://Production/AWS/access_key_id`
+- `op://Development/API Keys/stripe/production_key`
+
+**Setup Instructions:**
+1. Install 1Password CLI: https://developer.1password.com/docs/cli/get-started/
+2. Sign in: `op signin`
+3. Generate your `.env` file: `epicenv create`
+
+**Troubleshooting:**
+
+*"1Password CLI not installed"*
+- Install the CLI from https://developer.1password.com/docs/cli/get-started/
+- Verify with: `op --version`
+
+*"Not signed in to 1Password CLI"*
+- Run: `op signin`
+- Follow the prompts to authenticate
+
+*"Failed to read secret: vault not found"*
+- Check that the vault name is correct
+- Verify you have access to the vault in your 1Password account
+
+*"Timeout reading from 1Password"*
+- Check your internet connection
+- Try signing in again: `op signin`
 
 ### Custom Initializers
 

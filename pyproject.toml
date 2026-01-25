@@ -51,6 +51,7 @@ dev = [
     "environs[django]>=11.0.0",
     "pytest-cov>=6.0.0",
     "pytest-django>=4.9.0",
+    "pytest-mock>=3.14.0",
     "pytest>=8.3.3",
 ]
 
