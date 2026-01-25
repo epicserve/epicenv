@@ -4,10 +4,10 @@ set dotenv-load := true
     just --list
 
 @_success message:
-    echo "\033[0;32m{{ message }}\033[0m"
+    echo -e "\033[0;32m{{ message }}\033[0m"
 
 @_start_command message:
-    just _success "\n{{ message }} ..."
+    echo -e "\033[0;32m\n{{ message }} ...\033[0m"
 
 format: format_just format_python
 
