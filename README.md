@@ -478,6 +478,10 @@ class Config:
 
 Contributions are welcome! Please open an issue or submit a pull request.
 
+## Acknowledgments
+
+epicenv is built on top of [environs](https://github.com/sloria/environs), which provides the core environment variable parsing functionality. We're grateful to Steven Loria and the environs contributors for their excellent work.
+
 ## License
 
 This project is licensed under the MIT License.
