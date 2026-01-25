@@ -283,16 +283,16 @@ def get_callable(namespace_str, args=None, kwargs=None):
 
     Examples:
         # No arguments
-        func = get_callable('epicenv.password.url_safe')
-        result = func()  # Calls url_safe() with defaults
+        func = get_callable('epicenv.initializers.url_safe_password')
+        result = func()  # Calls url_safe_password() with defaults
 
         # With args
-        func = get_callable('epicenv.password.url_safe', args=[32])
-        result = func()  # Calls url_safe(32)
+        func = get_callable('epicenv.initializers.url_safe_password', args=[32])
+        result = func()  # Calls url_safe_password(32)
 
         # With kwargs
-        func = get_callable('epicenv.password.url_safe', kwargs={'length': 32})
-        result = func()  # Calls url_safe(length=32)
+        func = get_callable('epicenv.initializers.url_safe_password', kwargs={'length': 32})
+        result = func()  # Calls url_safe_password(length=32)
     """
     # Import the function
     module_name, func_name = namespace_str.rsplit(".", 1)

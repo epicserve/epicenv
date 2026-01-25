@@ -1,10 +1,10 @@
-"""Password generation utilities for epicenv."""
+"""Initializer functions for generating initial .env values."""
 
 import secrets
 import string
 
 
-def url_safe(length: int = 50) -> str:
+def url_safe_password(length: int = 50) -> str:
     """
     Generate a URL-safe random password.
 
