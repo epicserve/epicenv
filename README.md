@@ -253,12 +253,28 @@ All [environs](https://github.com/sloria/environs) types are supported:
 MY_VARIABLE = {
     type = "str",              # Variable type (required)
     required = true,           # Is this variable required? (default: true if no default)
-    default = "value",         # Default value if not set
+    default = "value",         # Default value for .env generation and diff
     help_text = "Description", # Documentation for this variable
     initial = "initial_value", # Static initial value for .env generation
     initial_func = "module.function"  # Callable for dynamic initial values
 }
 ```
+
+### Understanding `default` vs Runtime Defaults
+
+The `default` field in `pyproject.toml` is **only used for `.env` file generation and diff commands**. It is not used at runtime.
+
+Runtime defaults must always be specified in your Python code:
+
+```python
+# Runtime default is specified here, not in pyproject.toml
+DEBUG = env.bool("DEBUG", default=False)
+
+# This allows for dynamic defaults based on other values
+SECURE_COOKIES = env.bool("SECURE_COOKIES", default=not DEBUG)
+```
+
+This design prevents confusion about which default takes precedence and allows for dynamic defaults that depend on other values.
 
 ### Initial Value Functions
 

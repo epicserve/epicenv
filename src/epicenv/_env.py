@@ -134,13 +134,6 @@ class Env:
             elif validation_mode == "strict":
                 raise UndefinedVariableError(var_name, self._schema_file_path)
 
-        # For schema-defined vars, merge schema defaults with code defaults
-        if var_name in self._schema:
-            schema_def = self._schema[var_name]
-            # Apply defaults from schema if not provided in code
-            if "default" in schema_def and "default" not in environ_kwargs:
-                environ_kwargs["default"] = schema_def["default"]
-
         # Track variable for CLI commands (backward compat)
         if _is_command_or_test():
             env_variables[var_name] = {
