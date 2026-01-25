@@ -32,7 +32,7 @@ def find_pyproject_toml(start_path: Path | None = None) -> Path | None:
 
 @lru_cache(maxsize=1)
 def load_schema(pyproject_path: Path) -> dict:
-    """Load [tool.envutil.variables] from pyproject.toml.
+    """Load [tool.epicenv.variables] from pyproject.toml.
 
     Args:
         pyproject_path: Path to pyproject.toml file.
@@ -43,11 +43,11 @@ def load_schema(pyproject_path: Path) -> dict:
     with open(pyproject_path, "rb") as f:
         data = tomllib.load(f)
 
-    return data.get("tool", {}).get("envutil", {}).get("variables", {})
+    return data.get("tool", {}).get("epicenv", {}).get("variables", {})
 
 
 def get_config(pyproject_path: Path) -> dict:
-    """Load [tool.envutil] config (not variables) from pyproject.toml.
+    """Load [tool.epicenv] config (not variables) from pyproject.toml.
 
     Args:
         pyproject_path: Path to pyproject.toml file.
@@ -58,7 +58,7 @@ def get_config(pyproject_path: Path) -> dict:
     with open(pyproject_path, "rb") as f:
         data = tomllib.load(f)
 
-    tool_config = data.get("tool", {}).get("envutil", {})
+    tool_config = data.get("tool", {}).get("epicenv", {})
     # Remove variables from config (they're handled separately)
     config = {k: v for k, v in tool_config.items() if k != "variables"}
     return config

@@ -30,7 +30,7 @@ def validate_env(strict: bool):
     if not schema:
         click.echo(
             click.style("Warning: ", fg="yellow", bold=True)
-            + "No [tool.envutil.variables] section found in pyproject.toml"
+            + "No [tool.epicenv.variables] section found in pyproject.toml"
         )
         return
 

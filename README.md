@@ -1,14 +1,14 @@
-# envutil
+# epicenv
 
 Schema-based environment variable management for Python projects.
 
-Define your environment variables in `pyproject.toml` with types, defaults, and help text. Use envutil to create, validate, and manage `.env` files. Works with any Python project - Django, FastAPI, Flask, or plain Python.
+Define your environment variables in `pyproject.toml` with types, defaults, and help text. Use epicenv to create, validate, and manage `.env` files. Works with any Python project - Django, FastAPI, Flask, or plain Python.
 
 ## Features
 
 - 📋 **Schema-based**: Define variables in `pyproject.toml` with types, defaults, and documentation
 - ✅ **Validation**: Catch undefined variables in debug mode before they cause runtime errors
-- 🛠️ **CLI Tools**: Create and compare `.env` files with `uvx envutil create` and `uvx envutil diff`
+- 🛠️ **CLI Tools**: Create and compare `.env` files with `uvx epicenv create` and `uvx epicenv diff`
 - 🎯 **Framework Agnostic**: Works with Django, FastAPI, Flask, or any Python project
 - 🔧 **Flexible**: Use schema-only, code-only, or hybrid approaches
 - 🐍 **Type Safe**: Full type support (str, bool, int, list, url, json, etc.)
@@ -18,7 +18,7 @@ Define your environment variables in `pyproject.toml` with types, defaults, and 
 ### 1. Define your schema in `pyproject.toml`
 
 ```toml
-[tool.envutil.variables]
+[tool.epicenv.variables]
 SECRET_KEY = {
     type = "str",
     required = true,
@@ -51,14 +51,14 @@ API_KEY = {
 Use `uvx` to run without installing:
 
 ```bash
-uvx envutil create
+uvx epicenv create
 ```
 
 Or install and use directly:
 
 ```bash
-uv add envutil
-envutil create
+uv add epicenv
+epicenv create
 ```
 
 This generates a `.env` file with help text, types, and initial values:
@@ -89,7 +89,7 @@ API_KEY=
 ### 3. Use in your code
 
 ```python
-from envutil import Env
+from epicenv import Env
 
 env = Env()
 env.read_env()  # Load from .env file
@@ -105,13 +105,13 @@ API_KEY = env.str("API_KEY")
 Check for missing required variables:
 
 ```bash
-envutil validate
+epicenv validate
 ```
 
 Compare your `.env` file with the schema:
 
 ```bash
-envutil diff
+epicenv diff
 ```
 
 ## Installation
@@ -119,42 +119,42 @@ envutil diff
 ### For any Python project
 
 ```bash
-uv add envutil
+uv add epicenv
 ```
 
 ### For Django projects (with dj-database-url, dj-email-url support)
 
 ```bash
-uv add envutil[django]
+uv add epicenv[django]
 ```
 
 ### Without installation (using uvx)
 
 ```bash
-uvx envutil create
-uvx envutil diff
-uvx envutil validate
+uvx epicenv create
+uvx epicenv diff
+uvx epicenv validate
 ```
 
 ## CLI Commands
 
-### `envutil create`
+### `epicenv create`
 
 Create a `.env` file from your `pyproject.toml` schema.
 
 ```bash
-envutil create                    # Create .env in current directory
-envutil create --path config/.env # Create at specific path
-envutil create --no-backup        # Don't backup existing file
+epicenv create                    # Create .env in current directory
+epicenv create --path config/.env # Create at specific path
+epicenv create --no-backup        # Don't backup existing file
 ```
 
-### `envutil diff`
+### `epicenv diff`
 
 Compare your `.env` file with the schema and show differences.
 
 ```bash
-envutil diff                    # Compare .env with schema
-envutil diff --path config/.env # Compare specific file
+epicenv diff                    # Compare .env with schema
+epicenv diff --path config/.env # Compare specific file
 ```
 
 Output:
@@ -176,18 +176,18 @@ Variables in .env file not defined in schema:
   • OLD_VARIABLE
 ```
 
-### `envutil validate`
+### `epicenv validate`
 
 Validate current environment against schema.
 
 ```bash
-envutil validate          # Validate environment
-envutil validate --strict # Exit with error code if validation fails
+epicenv validate          # Validate environment
+epicenv validate --strict # Exit with error code if validation fails
 ```
 
 ## Validation Mode
 
-Validation is automatically enabled when `DEBUG=true`. Control validation behavior with the `ENVUTIL_VALIDATE` environment variable:
+Validation is automatically enabled when `DEBUG=true`. Control validation behavior with the `EPICENV_VALIDATE` environment variable:
 
 - `auto` (default): Validate when `DEBUG=true`, otherwise no validation
 - `strict`: Always validate and raise errors for undefined variables
@@ -200,21 +200,21 @@ DEBUG=true python manage.py runserver  # Validates!
 DEBUG=false python manage.py runserver # No validation
 
 # Force strict validation regardless of DEBUG
-ENVUTIL_VALIDATE=strict python manage.py runserver
+EPICENV_VALIDATE=strict python manage.py runserver
 
 # Warn about undefined variables but don't fail
-ENVUTIL_VALIDATE=warn python manage.py runserver
+EPICENV_VALIDATE=warn python manage.py runserver
 
 # Disable validation completely
-ENVUTIL_VALIDATE=off python manage.py runserver
+EPICENV_VALIDATE=off python manage.py runserver
 ```
 
 In your code:
 
 ```python
-from envutil import Env
+from epicenv import Env
 
-env = Env()  # Validation mode controlled by ENVUTIL_VALIDATE env var
+env = Env()  # Validation mode controlled by EPICENV_VALIDATE env var
 env.read_env()
 
 # If MY_VAR is not in pyproject.toml schema and validation is enabled:
@@ -226,12 +226,12 @@ Error message:
 ```
 UndefinedVariableError: Environment variable 'MY_VAR' is not defined in pyproject.toml schema.
 
-Add it to [tool.envutil.variables] in your pyproject.toml:
+Add it to [tool.epicenv.variables] in your pyproject.toml:
 
-[tool.envutil.variables]
+[tool.epicenv.variables]
 MY_VAR = { type = "str", help_text = "Description here" }
 
-Or disable validation by setting ENVUTIL_VALIDATE=off
+Or disable validation by setting EPICENV_VALIDATE=off
 ```
 
 ## Schema Reference
@@ -249,7 +249,7 @@ All [environs](https://github.com/sloria/environs) types are supported:
 ### Schema Fields
 
 ```toml
-[tool.envutil.variables]
+[tool.epicenv.variables]
 MY_VARIABLE = {
     type = "str",              # Variable type (required)
     required = true,           # Is this variable required? (default: true if no default)
@@ -265,7 +265,7 @@ MY_VARIABLE = {
 Use `initial_func` to generate dynamic values:
 
 ```toml
-[tool.envutil.variables]
+[tool.epicenv.variables]
 SECRET_KEY = {
     type = "str",
     initial_func = "secrets.token_urlsafe"  # Python stdlib
@@ -291,7 +291,7 @@ Define variables in `pyproject.toml` and use the Env class:
 ```python
 # settings.py
 from pathlib import Path
-from envutil import Env
+from epicenv import Env
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -306,8 +306,8 @@ DATABASES = {"default": env.dj_db_url("DATABASE_URL", default="sqlite:///db.sqli
 Then use CLI commands:
 
 ```bash
-envutil create  # Instead of ./manage.py create_env_file
-envutil diff    # Instead of ./manage.py diff_env_file
+epicenv create  # Instead of ./manage.py create_env_file
+epicenv diff    # Instead of ./manage.py diff_env_file
 ```
 
 ### Option 2: Django Management Commands (Legacy)
@@ -318,10 +318,10 @@ For backward compatibility, Django management commands still work:
 # settings.py
 INSTALLED_APPS = [
     ...
-    "envutil",  # Add to INSTALLED_APPS
+    "epicenv",  # Add to INSTALLED_APPS
 ]
 
-from envutil import Env
+from epicenv import Env
 
 env = Env()
 env.read_env(BASE_DIR / ".env")
@@ -347,7 +347,7 @@ Then use Django commands:
 
 ```toml
 # pyproject.toml
-[tool.envutil.variables]
+[tool.epicenv.variables]
 APP_NAME = { type = "str", default = "My API", help_text = "Application name" }
 API_HOST = { type = "str", default = "0.0.0.0", help_text = "API host" }
 API_PORT = { type = "int", default = 8000, help_text = "API port" }
@@ -358,7 +358,7 @@ LOG_LEVEL = { type = "log_level", default = "INFO", help_text = "Logging level" 
 
 ```python
 # config.py
-from envutil import Env
+from epicenv import Env
 
 env = Env()
 env.read_env()
@@ -375,7 +375,7 @@ LOG_LEVEL = env.log_level("LOG_LEVEL", default="INFO")
 
 ```toml
 # pyproject.toml
-[tool.envutil.variables]
+[tool.epicenv.variables]
 FLASK_APP = { type = "str", default = "app.py", help_text = "Flask app entry point" }
 FLASK_ENV = { type = "str", default = "production", help_text = "Flask environment" }
 SECRET_KEY = { type = "str", required = true, help_text = "Flask secret key", initial_func = "secrets.token_hex" }
@@ -384,7 +384,7 @@ DATABASE_URL = { type = "url", required = true, help_text = "Database URL" }
 
 ```python
 # config.py
-from envutil import Env
+from epicenv import Env
 
 env = Env()
 env.read_env()

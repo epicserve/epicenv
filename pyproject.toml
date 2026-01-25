@@ -1,5 +1,5 @@
 [project]
-name = "envutil"
+name = "epicenv"
 version = "1.0.0"
 description = "Schema-based environment variable management for Python projects"
 readme = "README.md"
@@ -35,11 +35,11 @@ django = [
 ]
 
 [project.scripts]
-envutil = "envutil.cli.main:cli"
+epicenv = "epicenv.cli.main:cli"
 
 [project.urls]
-Source = "https://github.com/epicserve/envutil"
-Documentation = "https://github.com/epicserve/envutil"
+Source = "https://github.com/epicserve/epicenv"
+Documentation = "https://github.com/epicserve/epicenv"
 
 [build-system]
 requires = ["hatchling"]
@@ -83,7 +83,7 @@ section-order = ["future", "standard-library", "third-party", "first-party", "lo
 source = ["src/"]
 
 # Example schema - uncomment to test CLI with schema
-# [tool.envutil.variables]
+# [tool.epicenv.variables]
 # SECRET_KEY = { type = "str", required = true, help_text = "Secret key for cryptographic signing", initial_func = "secrets.token_urlsafe" }
 # DEBUG = { type = "bool", default = false, initial = "on", help_text = "Enable debug mode (never enable in production)" }
 # DATABASE_URL = { type = "str", default = "sqlite:///db.sqlite3", help_text = "Database connection URL" }

@@ -28,7 +28,7 @@ def diff_env_file(env_path: Path):
     if not schema:
         click.echo(
             click.style("Warning: ", fg="yellow", bold=True)
-            + "No [tool.envutil.variables] section found in pyproject.toml"
+            + "No [tool.epicenv.variables] section found in pyproject.toml"
         )
         return
 
@@ -42,7 +42,7 @@ def diff_env_file(env_path: Path):
     # Check if .env file exists
     if not env_path.exists():
         click.echo(click.style("Error: ", fg="red", bold=True) + f"{env_path.relative_to(cwd)} does not exist.")
-        click.echo(f"\nRun {click.style('envutil create', fg='green')} to create it.")
+        click.echo(f"\nRun {click.style('epicenv create', fg='green')} to create it.")
         raise click.Abort()
 
     # Read .env file and extract variable names
@@ -115,4 +115,4 @@ def diff_env_file(env_path: Path):
     if not issues_found:
         click.echo(click.style("✓ All variables are in sync!", fg="green", bold=True))
     else:
-        click.echo(f"Run {click.style('envutil create', fg='green')} to regenerate the .env file.")
+        click.echo(f"Run {click.style('epicenv create', fg='green')} to regenerate the .env file.")

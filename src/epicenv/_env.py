@@ -62,18 +62,18 @@ class Env:
             self._schema_file_path = None
 
     def _should_validate(self) -> bool | str:
-        """Determine validation mode based on ENVUTIL_VALIDATE environment variable.
+        """Determine validation mode based on EPICENV_VALIDATE environment variable.
 
         Returns:
             Validation mode: "strict", "warn", or "off"
         """
-        # Read from ENVUTIL_VALIDATE env var (default: "auto")
-        validate_mode = os.getenv("ENVUTIL_VALIDATE", "auto").lower()
+        # Read from EPICENV_VALIDATE env var (default: "auto")
+        validate_mode = os.getenv("EPICENV_VALIDATE", "auto").lower()
 
         # Validate the mode value
         if validate_mode not in ("auto", "strict", "warn", "off"):
             warnings.warn(
-                f"Invalid ENVUTIL_VALIDATE value '{validate_mode}'. "
+                f"Invalid EPICENV_VALIDATE value '{validate_mode}'. "
                 f"Valid values: auto, strict, warn, off. Defaulting to 'auto'.",
                 UserWarning,
                 stacklevel=2,

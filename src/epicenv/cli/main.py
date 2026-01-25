@@ -1,4 +1,4 @@
-"""Main CLI entry point for envutil."""
+"""Main CLI entry point for epicenv."""
 
 from pathlib import Path
 
@@ -6,11 +6,11 @@ import click
 
 
 @click.group()
-@click.version_option(package_name="envutil")
+@click.version_option(package_name="epicenv")
 def cli():
     """Environment variable management tool for Python projects.
 
-    Define your environment variables in pyproject.toml and use envutil
+    Define your environment variables in pyproject.toml and use epicenv
     to create, validate, and manage .env files.
     """
     pass
@@ -23,7 +23,7 @@ def cli():
 def create(path: str, overwrite: bool, backup: bool):
     """Create a .env file from pyproject.toml schema.
 
-    Reads the [tool.envutil.variables] section from pyproject.toml
+    Reads the [tool.epicenv.variables] section from pyproject.toml
     and generates an initial .env file with help text, types, and defaults.
     """
     from .create import create_env_file

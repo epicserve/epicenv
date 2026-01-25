@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 
-from envutil import Env
+from epicenv import Env
 
 """
 Django settings for config project.
@@ -57,7 +57,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "envutil",
+    "epicenv",
 ]
 
 MIDDLEWARE = [

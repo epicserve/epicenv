@@ -1,15 +1,15 @@
-"""Custom exceptions for envutil."""
+"""Custom exceptions for epicenv."""
 
 from pathlib import Path
 
 
-class EnvutilError(Exception):
-    """Base exception for envutil."""
+class EpicenvError(Exception):
+    """Base exception for epicenv."""
 
     pass
 
 
-class UndefinedVariableError(EnvutilError, ValueError):
+class UndefinedVariableError(EpicenvError, ValueError):
     """Raised when accessing an environment variable not defined in schema."""
 
     def __init__(self, var_name: str, schema_path: Path | None = None):
@@ -21,10 +21,10 @@ class UndefinedVariableError(EnvutilError, ValueError):
         """
         msg = (
             f"Environment variable '{var_name}' is not defined in pyproject.toml schema.\n\n"
-            f"Add it to [tool.envutil.variables] in your pyproject.toml:\n\n"
-            f"[tool.envutil.variables]\n"
+            f"Add it to [tool.epicenv.variables] in your pyproject.toml:\n\n"
+            f"[tool.epicenv.variables]\n"
             f'{var_name} = {{ type = "str", help_text = "Description here" }}\n\n'
-            f"Or disable validation by setting ENVUTIL_VALIDATE=off"
+            f"Or disable validation by setting EPICENV_VALIDATE=off"
         )
         if schema_path:
             msg += f"\n\nSchema file: {schema_path}"
