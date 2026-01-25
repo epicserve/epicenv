@@ -13,7 +13,8 @@ class UndefinedVariableError(EpicenvError, ValueError):
     """Raised when accessing an environment variable not defined in schema."""
 
     def __init__(self, var_name: str, schema_path: Path | None = None):
-        """Initialize the exception with a helpful error message.
+        """
+        Initialize the exception with a helpful error message.
 
         Args:
             var_name: Name of the undefined environment variable.

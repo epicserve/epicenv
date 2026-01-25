@@ -9,7 +9,8 @@ from .._config import find_pyproject_toml, load_schema
 
 
 def diff_env_file(env_path: Path):
-    """Compare .env file with pyproject.toml schema.
+    """
+    Compare .env file with pyproject.toml schema.
 
     Args:
         env_path: Path to the .env file to compare
@@ -104,9 +105,7 @@ def diff_env_file(env_path: Path):
 
     if orphaned_vars:
         issues_found = True
-        click.echo(
-            click.style("Variables in .env file not defined in schema:", fg="magenta", bold=True)
-        )
+        click.echo(click.style("Variables in .env file not defined in schema:", fg="magenta", bold=True))
         for var in orphaned_vars:
             click.echo(f"  • {click.style(var, fg='cyan')}")
         click.echo()

@@ -10,7 +10,8 @@ from .._env import get_dot_env_file_str
 
 
 def create_env_file(env_path: Path, overwrite: bool, backup: bool):
-    """Create a .env file from pyproject.toml schema.
+    """
+    Create a .env file from pyproject.toml schema.
 
     Args:
         env_path: Path to the .env file to create
@@ -35,10 +36,9 @@ def create_env_file(env_path: Path, overwrite: bool, backup: bool):
 
     # Check if file exists and handle backup
     if env_path.exists():
-        if not overwrite:
-            if not click.confirm(f"File {env_path.relative_to(cwd)} already exists. Overwrite?"):
-                click.echo("Aborted.")
-                raise click.Abort()
+        if not overwrite and not click.confirm(f"File {env_path.relative_to(cwd)} already exists. Overwrite?"):
+            click.echo("Aborted.")
+            raise click.Abort()
 
         if backup:
             # Create backup with timestamp
@@ -46,8 +46,7 @@ def create_env_file(env_path: Path, overwrite: bool, backup: bool):
             backup_path = env_path.with_name(f".env.{now.strftime('%Y%m%d%H%M%S')}")
             env_path.rename(backup_path)
             click.echo(
-                click.style("Backup created: ", fg="yellow")
-                + click.style(str(backup_path.relative_to(cwd)), fg="cyan")
+                click.style("Backup created: ", fg="yellow") + click.style(str(backup_path.relative_to(cwd)), fg="cyan")
             )
 
     # Generate .env file content
@@ -55,7 +54,7 @@ def create_env_file(env_path: Path, overwrite: bool, backup: bool):
         dot_env_content = get_dot_env_file_str()
     except Exception as e:
         click.echo(click.style("Error generating .env file: ", fg="red", bold=True) + str(e))
-        raise click.Abort()
+        raise click.Abort() from e
 
     # Write the file
     env_path.write_text(dot_env_content)

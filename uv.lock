@@ -222,6 +222,7 @@ django = [
 [package.dev-dependencies]
 dev = [
     { name = "django" },
+    { name = "environs", extra = ["django"] },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pytest-django" },
@@ -239,6 +240,7 @@ provides-extras = ["django"]
 [package.metadata.requires-dev]
 dev = [
     { name = "django", specifier = ">=5.1.2" },
+    { name = "environs", extras = ["django"], specifier = ">=11.0.0" },
     { name = "pytest", specifier = ">=8.3.3" },
     { name = "pytest-cov", specifier = ">=6.0.0" },
     { name = "pytest-django", specifier = ">=4.9.0" },

@@ -9,7 +9,8 @@ from .._config import find_pyproject_toml, load_schema
 
 
 def validate_env(strict: bool):
-    """Validate current environment variables against schema.
+    """
+    Validate current environment variables against schema.
 
     Args:
         strict: If True, exit with error code on validation failure
@@ -75,8 +76,7 @@ def validate_env(strict: bool):
         total_vars = len(schema)
         set_vars = sum(1 for var_name in schema if var_name in os.environ)
         click.echo(
-            click.style("✓ Validation passed!", fg="green", bold=True)
-            + f" ({set_vars}/{total_vars} variables set)"
+            click.style("✓ Validation passed!", fg="green", bold=True) + f" ({set_vars}/{total_vars} variables set)"
         )
     else:
         click.echo(

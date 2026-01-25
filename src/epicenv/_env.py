@@ -35,7 +35,8 @@ class Env:
         expand_vars: bool = False,
         schema_path: Path | None = None,
     ):
-        """Initialize the Env instance.
+        """
+        Initialize the Env instance.
 
         Args:
             eager: If True, eagerly parse .env file. Passed to environs.Env.
@@ -62,7 +63,8 @@ class Env:
             self._schema_file_path = None
 
     def _should_validate(self) -> bool | str:
-        """Determine validation mode based on EPICENV_VALIDATE environment variable.
+        """
+        Determine validation mode based on EPICENV_VALIDATE environment variable.
 
         Returns:
             Validation mode: "strict", "warn", or "off"
@@ -93,7 +95,8 @@ class Env:
         environ_args: tuple[Any, ...],
         environ_kwargs: dict[str, Any] | None = None,
     ):
-        """Get an environment variable with optional validation against schema.
+        """
+        Get an environment variable with optional validation against schema.
 
         Args:
             var_type: Type of variable (str, bool, int, etc.)
@@ -192,7 +195,8 @@ class Env:
 
 
 def get_dot_env_file_str() -> str:
-    """Generate a .env file string from either schema or runtime registration.
+    """
+    Generate a .env file string from either schema or runtime registration.
 
     Tries to load from pyproject.toml schema first, falls back to runtime-registered
     env_variables dict (for backward compatibility with Django management commands).

@@ -12,7 +12,8 @@ else:
 
 @lru_cache(maxsize=1)
 def find_pyproject_toml(start_path: Path | None = None) -> Path | None:
-    """Search for pyproject.toml from start_path upward to root.
+    """
+    Search for pyproject.toml from start_path upward to root.
 
     Args:
         start_path: Starting directory to search from. Defaults to current working directory.
@@ -32,7 +33,8 @@ def find_pyproject_toml(start_path: Path | None = None) -> Path | None:
 
 @lru_cache(maxsize=1)
 def load_schema(pyproject_path: Path) -> dict:
-    """Load [tool.epicenv.variables] from pyproject.toml.
+    """
+    Load [tool.epicenv.variables] from pyproject.toml.
 
     Args:
         pyproject_path: Path to pyproject.toml file.
@@ -47,7 +49,8 @@ def load_schema(pyproject_path: Path) -> dict:
 
 
 def get_config(pyproject_path: Path) -> dict:
-    """Load [tool.epicenv] config (not variables) from pyproject.toml.
+    """
+    Load [tool.epicenv] config (not variables) from pyproject.toml.
 
     Args:
         pyproject_path: Path to pyproject.toml file.
