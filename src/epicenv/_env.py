@@ -116,6 +116,8 @@ class Env:
         help_text = environ_kwargs.pop("help_text", None)
         initial = environ_kwargs.pop("initial", None)
         initial_func = environ_kwargs.pop("initial_func", None)
+        args = environ_kwargs.pop("args", None)
+        kwargs = environ_kwargs.pop("kwargs", None)
 
         # Load schema for validation
         self._load_schema()
@@ -147,6 +149,8 @@ class Env:
                 "help_text": help_text,
                 "initial": initial,
                 "initial_func": initial_func,
+                "args": args,
+                "kwargs": kwargs,
             }
 
         try:
@@ -223,6 +227,8 @@ def get_dot_env_file_str() -> str:
                 "help_text": schema_def.get("help_text"),
                 "initial": schema_def.get("initial"),
                 "initial_func": schema_def.get("initial_func"),
+                "args": schema_def.get("args"),
+                "kwargs": schema_def.get("kwargs"),
             }
 
     # Fall back to or merge with runtime-registered variables
@@ -250,7 +256,9 @@ def get_dot_env_file_str() -> str:
             if callable(initial_func):
                 val = initial_func()
             elif isinstance(initial_func, str):
-                val = get_callable(initial_func)()
+                func_args = data.get("args")
+                func_kwargs = data.get("kwargs")
+                val = get_callable(initial_func, args=func_args, kwargs=func_kwargs)()
         elif initial is not None:
             val = initial
 
@@ -261,7 +269,41 @@ def get_dot_env_file_str() -> str:
     return env_str
 
 
-def get_callable(namespace_str):
+def get_callable(namespace_str, args=None, kwargs=None):
+    """
+    Get a callable from a namespace string and optionally wrap it with arguments.
+
+    Args:
+        namespace_str: String path to the callable (e.g., 'module.function')
+        args: Optional list of positional arguments to pass to the callable
+        kwargs: Optional dict of keyword arguments to pass to the callable
+
+    Returns:
+        Callable function or lambda that will execute with specified arguments
+
+    Examples:
+        # No arguments
+        func = get_callable('epicenv.initializers.url_safe_password')
+        result = func()  # Calls url_safe_password() with defaults
+
+        # With args
+        func = get_callable('epicenv.initializers.url_safe_password', args=[32])
+        result = func()  # Calls url_safe_password(32)
+
+        # With kwargs
+        func = get_callable('epicenv.initializers.url_safe_password', kwargs={'length': 32})
+        result = func()  # Calls url_safe_password(length=32)
+    """
+    # Import the function
     module_name, func_name = namespace_str.rsplit(".", 1)
     module = importlib.import_module(module_name)
-    return getattr(module, func_name)
+    func = getattr(module, func_name)
+
+    # If no arguments provided, return the function as-is
+    if args is None and kwargs is None:
+        return func
+
+    # Return a lambda that calls the function with the provided arguments
+    args = args or []
+    kwargs = kwargs or {}
+    return lambda: func(*args, **kwargs)

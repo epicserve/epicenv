@@ -282,6 +282,68 @@ CUSTOM_VALUE = {
 }
 ```
 
+### Built-in Initializers
+
+epicenv includes built-in initializer functions in the `epicenv.initializers` module:
+
+**`epicenv.initializers.url_safe_password`** - Generate a URL-safe random password (letters, digits, `-`, `_`):
+
+```toml
+[tool.epicenv.variables]
+SECRET_KEY = {
+    type = "str",
+    required = true,
+    help_text = "Secret key for cryptographic signing",
+    initial_func = "epicenv.initializers.url_safe_password"
+}
+
+# With custom length (default is 50)
+API_TOKEN = {
+    type = "str",
+    required = true,
+    help_text = "API authentication token",
+    initial_func = "epicenv.initializers.url_safe_password",
+    kwargs = { length = 32 }
+}
+```
+
+More initializers may be added in the future, such as fetching secrets from 1Password.
+
+### Custom Initializers
+
+You can create your own initializer functions anywhere in your codebase:
+
+```python
+# myapp/env_utils.py
+import secrets
+
+def generate_api_key() -> str:
+    """Generate an API key with a custom prefix."""
+    return f"sk_{secrets.token_hex(16)}"
+
+def generate_uuid() -> str:
+    """Generate a UUID string."""
+    import uuid
+    return str(uuid.uuid4())
+```
+
+Then reference them in your schema:
+
+```toml
+[tool.epicenv.variables]
+API_KEY = {
+    type = "str",
+    required = true,
+    initial_func = "myapp.env_utils.generate_api_key"
+}
+
+INSTANCE_ID = {
+    type = "str",
+    required = true,
+    initial_func = "myapp.env_utils.generate_uuid"
+}
+```
+
 ## Django Integration
 
 ### Option 1: Schema-based (Recommended)
