@@ -5,7 +5,8 @@ import string
 
 
 def url_safe(length: int = 50) -> str:
-    """Generate a URL-safe random password.
+    """
+    Generate a URL-safe random password.
 
     Args:
         length: The length of the password to generate. Defaults to 50.

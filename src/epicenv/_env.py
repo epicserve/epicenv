@@ -270,7 +270,8 @@ def get_dot_env_file_str() -> str:
 
 
 def get_callable(namespace_str, args=None, kwargs=None):
-    """Get a callable from a namespace string and optionally wrap it with arguments.
+    """
+    Get a callable from a namespace string and optionally wrap it with arguments.
 
     Args:
         namespace_str: String path to the callable (e.g., 'module.function')

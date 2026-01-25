@@ -1,6 +1,5 @@
 """Tests for initial_func functionality with args and kwargs."""
 
-import pytest
 
 from epicenv._env import get_callable
 from epicenv.password import url_safe
@@ -89,11 +88,8 @@ class TestPasswordUrlSafe:
         has_lowercase = any(c.islower() for c in password)
         has_uppercase = any(c.isupper() for c in password)
         has_digit = any(c.isdigit() for c in password)
-        has_special = any(c in "-_" for c in password)
 
         # With 1000 characters, we should have all types
         assert has_lowercase
         assert has_uppercase
         assert has_digit
-        # Special characters (-_) are less common, so this might occasionally fail
-        # but with 1000 chars it should usually pass
