@@ -1,4 +1,4 @@
-"""Initializer functions for generating initial .env values."""
+"""Password generation initializers."""
 
 import secrets
 import string

@@ -1,6 +1,6 @@
 """Tests for initial_func functionality with args and kwargs."""
 
-from epicenv._env import get_callable
+from epicenv._env import get_callable, get_dot_env_file_str
 from epicenv.initializers import url_safe_password
 
 
@@ -92,3 +92,151 @@ class TestUrlSafePassword:
         assert has_lowercase
         assert has_uppercase
         assert has_digit
+
+
+class TestOnePasswordIntegration:
+    """Test integration of onepassword initializer with get_callable."""
+
+    def test_get_callable_with_onepassword_success(self, mocker):
+        """Test onepassword via get_callable when 1Password is available."""
+        mocker.patch(
+            "epicenv.initializers._onepassword._check_onepassword_available",
+            return_value=(True, None),
+        )
+        mocker.patch(
+            "epicenv.initializers._onepassword._fetch_from_onepassword",
+            return_value=("secret123", None),
+        )
+
+        func = get_callable(
+            "epicenv.initializers.onepassword",
+            args=["op://vault/item/field"],
+            kwargs={"_variable_name": "API_KEY"},
+        )
+        result = func()
+
+        assert result == "secret123"
+
+    def test_get_callable_with_onepassword_fallback(self, mocker):
+        """Test onepassword via get_callable uses fallback when unavailable."""
+        mocker.patch(
+            "epicenv.initializers._onepassword._check_onepassword_available",
+            return_value=(False, "1Password CLI not installed"),
+        )
+
+        func = get_callable(
+            "epicenv.initializers.onepassword",
+            args=["op://vault/item/field"],
+            kwargs={"_variable_name": "STRIPE_KEY", "silent": True},
+        )
+        result = func()
+
+        assert result == "[Enter STRIPE_KEY]"
+
+    def test_get_callable_with_onepassword_custom_fallback(self, mocker):
+        """Test onepassword via get_callable with custom fallback."""
+        mocker.patch(
+            "epicenv.initializers._onepassword._check_onepassword_available",
+            return_value=(False, "1Password CLI not installed"),
+        )
+
+        func = get_callable(
+            "epicenv.initializers.onepassword",
+            args=["op://vault/item/field"],
+            kwargs={"fallback": "my_custom_value", "silent": True},
+        )
+        result = func()
+
+        assert result == "my_custom_value"
+
+    def test_get_dot_env_file_str_injects_variable_name(self, mocker, tmp_path):
+        """Test that get_dot_env_file_str automatically injects _variable_name."""
+        # Create a temporary pyproject.toml with onepassword initializer
+        pyproject_file = tmp_path / "pyproject.toml"
+        pyproject_file.write_text(
+            """
+[tool.epicenv.variables.TEST_SECRET]
+type = "str"
+required = true
+help_text = "Test secret from 1Password"
+initial_func = "epicenv.initializers.onepassword"
+args = ["op://vault/item/field"]
+"""
+        )
+
+        # Mock 1Password to return a test value
+        mocker.patch(
+            "epicenv.initializers._onepassword._check_onepassword_available",
+            return_value=(True, None),
+        )
+
+        def mock_fetch(reference):
+            # This will be called by onepassword()
+            return ("test_value", None)
+
+        mocker.patch(
+            "epicenv.initializers._onepassword._fetch_from_onepassword",
+            side_effect=mock_fetch,
+        )
+
+        # Mock find_pyproject_toml to return our test file
+        # Need to mock where it's imported, not where it's defined
+        mocker.patch(
+            "epicenv._env.find_pyproject_toml",
+            return_value=pyproject_file,
+        )
+
+        # Generate the .env file
+        result = get_dot_env_file_str()
+
+        # Verify the secret was fetched successfully
+        assert "TEST_SECRET=test_value" in result
+
+    def test_get_dot_env_file_str_with_onepassword_fallback(self, mocker, tmp_path, capsys):
+        """Test .env generation with 1Password fallback."""
+        # Create a temporary pyproject.toml
+        pyproject_file = tmp_path / "pyproject.toml"
+        pyproject_file.write_text(
+            """
+[tool.epicenv.variables.API_KEY]
+type = "str"
+required = true
+help_text = "API key from 1Password"
+initial_func = "epicenv.initializers.onepassword"
+args = ["op://Production/API/key"]
+
+[tool.epicenv.variables.DATABASE_PASSWORD]
+type = "str"
+required = true
+initial_func = "epicenv.initializers.onepassword"
+args = ["op://Production/Database/password"]
+
+[tool.epicenv.variables.DATABASE_PASSWORD.kwargs]
+fallback = "dev_password"
+"""
+        )
+
+        # Mock 1Password as unavailable
+        mocker.patch(
+            "epicenv.initializers._onepassword._check_onepassword_available",
+            return_value=(False, "Not signed in to 1Password CLI"),
+        )
+
+        # Mock find_pyproject_toml to return our test file
+        # Need to mock where it's imported, not where it's defined
+        mocker.patch(
+            "epicenv._env.find_pyproject_toml",
+            return_value=pyproject_file,
+        )
+
+        # Generate the .env file
+        result = get_dot_env_file_str()
+
+        # Verify fallback values are used
+        assert "API_KEY=[Enter API_KEY]" in result
+        assert "DATABASE_PASSWORD=dev_password" in result
+
+        # Verify warnings were shown
+        captured = capsys.readouterr()
+        assert "1Password CLI not available for API_KEY" in captured.err
+        assert "1Password CLI not available for DATABASE_PASSWORD" in captured.err

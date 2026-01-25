@@ -1,4 +1,5 @@
 import importlib
+import inspect
 import os
 import sys
 import warnings
@@ -251,6 +252,22 @@ def get_dot_env_file_str() -> str:
             elif isinstance(initial_func, str):
                 func_args = data.get("args")
                 func_kwargs = data.get("kwargs")
+                # Copy kwargs if it exists, otherwise create new dict
+                func_kwargs = {} if func_kwargs is None else func_kwargs.copy()
+
+                # Check if the function accepts _variable_name parameter
+                try:
+                    module_name, func_name = initial_func.rsplit(".", 1)
+                    module = importlib.import_module(module_name)
+                    func = getattr(module, func_name)
+                    sig = inspect.signature(func)
+                    # Inject variable name only if function accepts it
+                    if "_variable_name" in sig.parameters:
+                        func_kwargs["_variable_name"] = key
+                except Exception:  # noqa: S110
+                    # If we can't inspect, skip injecting (better safe than sorry)
+                    pass
+
                 val = get_callable(initial_func, args=func_args, kwargs=func_kwargs)()
         elif initial is not None:
             val = initial
