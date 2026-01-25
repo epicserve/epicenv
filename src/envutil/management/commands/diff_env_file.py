@@ -3,7 +3,7 @@ from pathlib import Path
 
 from django.core.management import BaseCommand
 
-from django_envtools import env_variables
+from envutil import env_variables
 
 
 class Command(BaseCommand):

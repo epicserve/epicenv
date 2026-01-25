@@ -3,7 +3,7 @@ from pathlib import Path
 from django.core.management import BaseCommand
 from django.utils import timezone
 
-from django_envtools import get_dot_env_file_str
+from envutil import get_dot_env_file_str
 
 
 class Command(BaseCommand):

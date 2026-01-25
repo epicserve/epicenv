@@ -1,14 +1,16 @@
 [project]
-name = "django-envtools"
-version = "0.2.0"
-description = "Add your description here"
+name = "envutil"
+version = "1.0.0"
+description = "Schema-based environment variable management for Python projects"
 readme = "README.md"
 authors = [
     { name = "Brent O'Connor", email = "brent@epicserve.com" }
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "environs[django]>=11.0.0",
+    "environs>=11.0.0",
+    "click>=8.0.0",
+    "tomli>=2.0.0; python_version < '3.11'",
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -26,9 +28,18 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Software Development :: Build Tools",
 ]
+
+[project.optional-dependencies]
+django = [
+    "environs[django]>=11.0.0",
+]
+
+[project.scripts]
+envutil = "envutil.cli.main:cli"
+
 [project.urls]
-Source = "https://github.com/epicserve/django-envtools"
-Documentation = "https://github.com/epicserve/django-envtools"
+Source = "https://github.com/epicserve/envutil"
+Documentation = "https://github.com/epicserve/envutil"
 
 [build-system]
 requires = ["hatchling"]
@@ -70,3 +81,10 @@ section-order = ["future", "standard-library", "third-party", "first-party", "lo
 
 [tool.coverage.run]
 source = ["src/"]
+
+# Example schema - uncomment to test CLI with schema
+# [tool.envutil.variables]
+# SECRET_KEY = { type = "str", required = true, help_text = "Secret key for cryptographic signing", initial_func = "secrets.token_urlsafe" }
+# DEBUG = { type = "bool", default = false, initial = "on", help_text = "Enable debug mode (never enable in production)" }
+# DATABASE_URL = { type = "str", default = "sqlite:///db.sqlite3", help_text = "Database connection URL" }
+# API_KEY = { type = "str", required = true, help_text = "API key for external service" }

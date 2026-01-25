@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.10"
 
 [[package]]
@@ -46,6 +46,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/60/33/45b4d5311f42360f9b900dea53ab2bb20a3d61d7f9b7c37ddfcb3962f86f/backports_datetime_fromisoformat-2.0.3-cp312-cp312-win_amd64.whl", hash = "sha256:d144868a73002e6e2e6fef72333e7b0129cecdd121aa8f1edba7107fd067255d", size = 29375, upload-time = "2024-12-28T20:17:36.018Z" },
     { url = "https://files.pythonhosted.org/packages/be/03/7eaa9f9bf290395d57fd30d7f1f2f9dff60c06a31c237dc2beb477e8f899/backports_datetime_fromisoformat-2.0.3-pp310-pypy310_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:90e202e72a3d5aae673fcc8c9a4267d56b2f532beeb9173361293625fe4d2039", size = 28980, upload-time = "2024-12-28T20:18:06.554Z" },
     { url = "https://files.pythonhosted.org/packages/47/80/a0ecf33446c7349e79f54cc532933780341d20cff0ee12b5bfdcaa47067e/backports_datetime_fromisoformat-2.0.3-pp310-pypy310_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2df98ef1b76f5a58bb493dda552259ba60c3a37557d848e039524203951c9f06", size = 28449, upload-time = "2024-12-28T20:18:07.77Z" },
+]
+
+[[package]]
+name = "click"
+version = "8.3.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "colorama", marker = "sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3d/fa/656b739db8587d7b5dfa22e22ed02566950fbfbcdc20311993483657a5c0/click-8.3.1.tar.gz", hash = "sha256:12ff4785d337a1bb490bb7e9c2b1ee5da3112e94a8622f26a6c77f5d2fc6842a", size = 295065, upload-time = "2025-11-15T20:45:42.706Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/98/78/01c019cdb5d6498122777c1a43056ebb3ebfeef2076d9d026bfe15583b2b/click-8.3.1-py3-none-any.whl", hash = "sha256:981153a64e25f12d547d3426c367a4857371575ee7ad18df2a6183ab0545b2a6", size = 108274, upload-time = "2025-11-15T20:45:41.139Z" },
 ]
 
 [[package]]
@@ -172,33 +184,6 @@ wheels = [
 ]
 
 [[package]]
-name = "django-envtools"
-version = "0.2.0"
-source = { editable = "." }
-dependencies = [
-    { name = "environs", extra = ["django"] },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "django" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "pytest-django" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "environs", extras = ["django"], specifier = ">=11.0.0" }]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "django", specifier = ">=5.1.2" },
-    { name = "pytest", specifier = ">=8.3.3" },
-    { name = "pytest-cov", specifier = ">=6.0.0" },
-    { name = "pytest-django", specifier = ">=4.9.0" },
-]
-
-[[package]]
 name = "environs"
 version = "14.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -217,6 +202,46 @@ django = [
     { name = "dj-database-url" },
     { name = "dj-email-url" },
     { name = "django-cache-url" },
+]
+
+[[package]]
+name = "envutil"
+version = "1.0.0"
+source = { editable = "." }
+dependencies = [
+    { name = "click" },
+    { name = "environs" },
+    { name = "tomli", marker = "python_full_version < '3.11'" },
+]
+
+[package.optional-dependencies]
+django = [
+    { name = "environs", extra = ["django"] },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "django" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "pytest-django" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "click", specifier = ">=8.0.0" },
+    { name = "environs", specifier = ">=11.0.0" },
+    { name = "environs", extras = ["django"], marker = "extra == 'django'", specifier = ">=11.0.0" },
+    { name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=2.0.0" },
+]
+provides-extras = ["django"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "django", specifier = ">=5.1.2" },
+    { name = "pytest", specifier = ">=8.3.3" },
+    { name = "pytest-cov", specifier = ">=6.0.0" },
+    { name = "pytest-django", specifier = ">=4.9.0" },
 ]
 
 [[package]]
