@@ -64,5 +64,33 @@ def validate(strict: bool):
     validate_env(strict)
 
 
+@cli.command("create-superuser")
+@click.option(
+    "--reference",
+    type=str,
+    default=None,
+    help="1Password reference (e.g., 'op://vault/item'). Overrides pyproject.toml config.",
+)
+@click.option(
+    "--settings",
+    type=str,
+    default=None,
+    help="Django settings module (e.g., 'myproject.settings'). Uses DJANGO_SETTINGS_MODULE if not provided.",
+)
+def create_superuser_cmd(reference: str | None, settings: str | None):
+    """
+    Create a Django superuser from 1Password credentials.
+
+    Fetches username, email, and password from 1Password and creates
+    a Django superuser. If the user already exists (by username or email),
+    updates their password instead.
+
+    Requires Django to be installed and configured.
+    """
+    from .create_superuser import create_superuser
+
+    create_superuser(reference=reference, settings_module=settings)
+
+
 if __name__ == "__main__":
     cli()

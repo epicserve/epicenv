@@ -65,3 +65,19 @@ def get_config(pyproject_path: Path) -> dict:
     # Remove variables from config (they're handled separately)
     config = {k: v for k, v in tool_config.items() if k != "variables"}
     return config
+
+
+def get_django_config(pyproject_path: Path) -> dict:
+    """
+    Load [tool.epicenv.django] config from pyproject.toml.
+
+    Args:
+        pyproject_path: Path to pyproject.toml file.
+
+    Returns:
+        Dictionary of Django-specific configuration settings.
+    """
+    with open(pyproject_path, "rb") as f:
+        data = tomllib.load(f)
+
+    return data.get("tool", {}).get("epicenv", {}).get("django", {})
