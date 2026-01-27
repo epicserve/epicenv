@@ -4,9 +4,27 @@ Schema-based environment variable management for Python projects.
 
 Define your environment variables in `pyproject.toml` with types, defaults, and help text. Use epicenv to create, validate, and manage `.env` files. Works with any Python project - Django, FastAPI, Flask, or plain Python.
 
+## Why epicenv?
+
+**The traditional `.env` template workflow has problems:**
+
+- Copy `.env.example` to `.env`
+- Manually generate and add secrets
+- Manually add config values that couldn't be included in the template
+- Templates get out of date, leading to missing variables at runtime
+
+**With epicenv, just run `epicenv create`:**
+
+- Generates a complete `.env` file from your schema in `pyproject.toml`
+- Auto-generates secrets using initializers (1Password, `url_safe_password`, or your own custom initializers)
+- Schema is the single source of truth - never have an outdated template again
+- Validation catches undefined variables before they cause runtime errors
+- `epicenv diff` shows what's missing or changed between your `.env` and schema
+
 ## Features
 
 - 📋 **Schema-based**: Define variables in `pyproject.toml` with types, defaults, and documentation
+- 🔐 **Initializers**: Auto-generate secrets, fetch from 1Password, or use custom initializers during `.env` creation
 - ✅ **Validation**: Catch undefined variables in debug mode before they cause runtime errors
 - 🛠️ **CLI Tools**: Create and compare `.env` files with `uvx epicenv create` and `uvx epicenv diff`
 - 🎯 **Framework Agnostic**: Works with Django, FastAPI, Flask, or any Python project
