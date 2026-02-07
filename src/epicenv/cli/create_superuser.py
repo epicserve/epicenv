@@ -108,6 +108,7 @@ else:
 def create_superuser(
     reference: str | None = None,
     settings_module: str | None = None,
+    compose_service: str | None = None,
 ) -> None:
     """
     Create a Django superuser from 1Password credentials.
@@ -118,6 +119,8 @@ def create_superuser(
     Args:
         reference: Optional 1Password reference override
         settings_module: Optional Django settings module
+        compose_service: Optional Docker Compose service name (e.g., 'web').
+                        If provided, Django code runs via 'docker compose exec'.
     """
     # 1. Find pyproject.toml
     pyproject_path = find_pyproject_toml()
@@ -135,6 +138,9 @@ def create_superuser(
         click.echo("[tool.epicenv.django]")
         click.echo('superuser_reference = "op://vault/item"')
         raise click.Abort()
+
+    # 3b. Resolve compose_service (CLI flag > config > None)
+    final_compose_service = compose_service if compose_service is not None else config.get("compose_service")
 
     # 4. Check 1Password availability (on host)
     is_available, error = _check_onepassword_available()
@@ -170,18 +176,45 @@ def create_superuser(
     lookup_fields = config.get("superuser_lookup_fields", ["username"])
     lookup_str = ",".join(lookup_fields)
 
+    # Build the command
+    if final_compose_service:
+        # Run Django code in Docker container via docker compose exec
+        # Pass environment variables and execute Python script
+        cmd = [
+            "docker",
+            "compose",
+            "exec",
+            "-T",  # Disable pseudo-TTY
+            "-e",
+            f"DJANGO_SETTINGS_MODULE={subprocess_env.get('DJANGO_SETTINGS_MODULE', '')}",
+            final_compose_service,
+            "python",
+            "-c",
+            _CREATE_SUPERUSER_SCRIPT,
+            credentials.username,
+            credentials.email,
+            credentials.password,
+            lookup_str,
+        ]
+        # Don't pass full env to docker compose (it inherits from host)
+        env = None
+    else:
+        # Run Django code locally
+        cmd = [
+            sys.executable,
+            "-c",
+            _CREATE_SUPERUSER_SCRIPT,
+            credentials.username,
+            credentials.email,
+            credentials.password,
+            lookup_str,
+        ]
+        env = subprocess_env
+
     try:
         result = subprocess.run(  # noqa: S603
-            [
-                sys.executable,
-                "-c",
-                _CREATE_SUPERUSER_SCRIPT,
-                credentials.username,
-                credentials.email,
-                credentials.password,
-                lookup_str,
-            ],
-            env=subprocess_env,
+            cmd,
+            env=env,
             capture_output=True,
             text=True,
             check=True,
@@ -223,6 +256,12 @@ def create_superuser(
     "settings_module",
     help="Django settings module (e.g., 'myproject.settings')",
 )
-def cli(reference: str | None, settings_module: str | None) -> None:
+@click.option(
+    "--compose-service",
+    help="Docker Compose service name to execute Django code in (e.g., 'web'). "
+    "If provided, runs Django via 'docker compose exec'. "
+    "1Password CLI must be installed on the host, not in the container.",
+)
+def cli(reference: str | None, settings_module: str | None, compose_service: str | None) -> None:
     """Create or update Django superuser from 1Password credentials."""
-    create_superuser(reference=reference, settings_module=settings_module)
+    create_superuser(reference=reference, settings_module=settings_module, compose_service=compose_service)

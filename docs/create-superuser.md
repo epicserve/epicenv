@@ -32,6 +32,11 @@ superuser_reference = "op://vault/item"
 # Optional: Fields to check for existing users (default: ["username"])
 superuser_lookup_fields = ["username", "email"]
 
+# Optional: Docker Compose service name
+# If set, Django runs in container via 'docker compose exec'
+# Can be overridden with --compose-service flag
+compose_service = "web"
+
 # Optional: Custom field names in 1Password
 [tool.epicenv.django.superuser_fields]
 username = "username"
@@ -45,9 +50,29 @@ password = "password"
 epicenv create-superuser [OPTIONS]
 
 Options:
-  --reference TEXT   Override 1Password reference
-  --settings TEXT    Django settings module (e.g., 'myproject.settings')
-  --help             Show this message and exit
+  --reference TEXT         Override 1Password reference
+  --settings TEXT          Django settings module (e.g., 'myproject.settings')
+  --compose-service TEXT   Docker Compose service name (e.g., 'web')
+  --help                   Show this message and exit
+```
+
+The `--compose-service` option runs Django code inside a Docker container while keeping 1Password CLI on the host.
+
+### Configuration Priority
+
+When `compose_service` is configured in both places:
+
+1. **CLI flag** takes precedence (overrides config)
+2. **Config file** provides default
+3. **Neither** = runs locally
+
+Examples:
+```bash
+# Config: compose_service = "web"
+
+epicenv create-superuser              # Uses "web" from config
+epicenv create-superuser --compose-service api  # Uses "api" (overrides)
+epicenv create-superuser              # If no config: runs locally
 ```
 
 ## Idempotent Behavior
@@ -140,38 +165,58 @@ This means:
 
 ## Docker and Docker Compose
 
-For containerized Django applications, you can run `epicenv create-superuser` inside your Docker containers. The command works seamlessly with the `docker compose exec` workflow you're already using for Django management commands.
+For containerized Django applications, use the `--compose-service` flag to run Django code in your container while keeping 1Password CLI on your host machine.
 
 ### Quick Example
 
 ```bash
-# Run in a container (same pattern as ./manage.py commands)
-docker compose exec web epicenv create-superuser
+# Run from host - 1Password stays on host, Django runs in container
+epicenv create-superuser --compose-service web
 ```
+
+**No 1Password CLI installation in containers needed!** ✨
+
+### How It Works
+
+```bash
+epicenv create-superuser --compose-service web
+```
+
+1. **Fetches credentials** from 1Password on your **host** (where CLI is installed)
+2. **Passes credentials** to your Docker container
+3. **Executes Django** code inside the container via `docker compose exec -T`
 
 ### Setup Requirements
 
-For Docker workflows, you need 1Password CLI access in the container. Two approaches:
+- 1Password CLI installed **on host only** (not in containers)
+- Docker Compose running
+- `DJANGO_SETTINGS_MODULE` set in docker-compose.yml
 
-1. **Mount 1Password session** (Recommended for development):
-   ```yaml
-   # docker-compose.yml
-   services:
-     web:
-       volumes:
-         - ~/.op:/root/.op:ro  # Mount session from host
-   ```
+**docker-compose.yml example:**
+```yaml
+services:
+  web:
+    environment:
+      DJANGO_SETTINGS_MODULE: myproject.settings
+```
 
-2. **Install 1Password CLI in container** (For production or when needed):
-   ```dockerfile
-   RUN curl -sSO https://downloads.1password.com/linux/debian/amd64/stable/1password-cli-amd64-latest.deb && \
-       dpkg -i 1password-cli-amd64-latest.deb
-   ```
+### Usage Examples
+
+```bash
+# Basic usage
+epicenv create-superuser --compose-service web
+
+# With specific settings
+epicenv create-superuser --compose-service web --settings myproject.prod_settings
+
+# With custom reference
+epicenv create-superuser --compose-service web --reference "op://Production/Admin"
+```
 
 ### Complete Guide
 
 For comprehensive Docker Compose setup including:
-- Complete Dockerfile and docker-compose.yml examples
+- Complete docker-compose.yml and Dockerfile examples
 - Development and production deployment patterns
 - CI/CD integration with GitHub Actions
 - Troubleshooting Docker-specific issues

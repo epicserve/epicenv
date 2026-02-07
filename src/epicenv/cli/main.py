@@ -77,7 +77,13 @@ def validate(strict: bool):
     default=None,
     help="Django settings module (e.g., 'myproject.settings'). Uses DJANGO_SETTINGS_MODULE if not provided.",
 )
-def create_superuser_cmd(reference: str | None, settings: str | None):
+@click.option(
+    "--compose-service",
+    type=str,
+    default=None,
+    help="Docker Compose service name (e.g., 'web'). Runs Django code via 'docker compose exec'.",
+)
+def create_superuser_cmd(reference: str | None, settings: str | None, compose_service: str | None):
     """
     Create a Django superuser from 1Password credentials.
 
@@ -85,11 +91,14 @@ def create_superuser_cmd(reference: str | None, settings: str | None):
     a Django superuser. If the user already exists (by username or email),
     updates their password instead.
 
-    Requires Django to be installed and configured.
+    For local development: epicenv create-superuser
+    For Docker Compose: epicenv create-superuser --compose-service web
+
+    1Password CLI must be installed on the host machine, not in containers.
     """
     from .create_superuser import create_superuser
 
-    create_superuser(reference=reference, settings_module=settings)
+    create_superuser(reference=reference, settings_module=settings, compose_service=compose_service)
 
 
 if __name__ == "__main__":

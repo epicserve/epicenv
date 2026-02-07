@@ -1,38 +1,39 @@
 # Using epicenv with Docker Compose
 
-This guide shows how to use epicenv's `create-superuser` command in containerized Django applications with Docker Compose.
+This guide shows how to use epicenv's `create-superuser` command with Docker Compose, keeping 1Password CLI on your host machine.
 
 ## Overview
 
-The `epicenv create-superuser` command fetches credentials from 1Password on your host machine, then uses subprocess to create the superuser in Django. This works seamlessly with Docker Compose by:
+The `epicenv create-superuser --compose-service <service>` command:
 
-1. Running epicenv on your host machine (where 1Password CLI is available)
-2. Loading environment variables from your epicenv configuration
-3. Executing Django commands either locally or in containers
+1. **Runs on your host** where 1Password CLI is installed
+2. **Fetches credentials** from 1Password on the host
+3. **Executes Django code** inside your Docker container via `docker compose exec`
+
+**No 1Password CLI installation in containers required!** ✨
 
 ## Quick Start
 
 ```bash
-# Run epicenv on host - it will create superuser in local Django environment
-epicenv create-superuser
+# On your host machine (where 1Password CLI is installed)
+epicenv create-superuser --compose-service web
 
-# For Docker Compose workflows, you'll need 1Password CLI accessible in the container
-# Two approaches: mount ~/.op session OR install 1Password CLI in container
+# That's it! No 1Password in containers needed.
 ```
 
 ## Prerequisites
 
 - Docker and Docker Compose installed
-- 1Password CLI configured on host machine
+- 1Password CLI installed **on host only** (not in containers)
 - Django project with epicenv configured in [pyproject.toml](../README.md#quick-start)
+- epicenv installed **on host** (you can optionally install it in containers too)
 
-## Setup Approaches
+## Setup
 
-### Approach 1: Mount 1Password Session (Development - Recommended)
+### docker-compose.yml
 
-Best for local development. Your host machine's 1Password session is mounted into containers.
+Simple configuration - no 1Password mounts needed:
 
-**docker-compose.yml:**
 ```yaml
 services:
   db:
@@ -49,8 +50,6 @@ services:
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - .:/app
-      # Mount 1Password session directory (read-only)
-      - ~/.op:/root/.op:ro
     environment:
       DATABASE_URL: postgres://myapp:devpassword@db:5432/myapp
       DJANGO_SETTINGS_MODULE: myproject.settings
@@ -63,7 +62,10 @@ volumes:
   postgres_data:
 ```
 
-**Dockerfile:**
+### Dockerfile
+
+No special 1Password configuration needed:
+
 ```dockerfile
 FROM python:3.12-slim
 
@@ -72,87 +74,12 @@ WORKDIR /app
 # Copy dependency files
 COPY pyproject.toml uv.lock ./
 
-# Install dependencies including epicenv
-RUN pip install uv && \
-    uv sync --frozen
-
-COPY . /app
-
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
-```
-
-**Usage:**
-```bash
-# Sign in to 1Password on host
-op signin
-
-# Start services
-docker compose up -d
-
-# Run migrations
-docker compose exec web python manage.py migrate
-
-# Create superuser (epicenv inside container can access host's 1Password session)
-docker compose exec web epicenv create-superuser
-```
-
-### Approach 2: Install 1Password CLI in Container
-
-Best when you need 1Password CLI for other operations in the container.
-
-**Dockerfile:**
-```dockerfile
-FROM python:3.12-slim
-
-# Install 1Password CLI
-RUN apt-get update && \
-    apt-get install -y curl && \
-    curl -sSO https://downloads.1password.com/linux/debian/amd64/stable/1password-cli-amd64-latest.deb && \
-    dpkg -i 1password-cli-amd64-latest.deb && \
-    rm 1password-cli-amd64-latest.deb && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
-
-# Copy and install dependencies
-COPY pyproject.toml uv.lock ./
+# Install dependencies
 RUN pip install uv && uv sync --frozen
 
 COPY . /app
 
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
-```
-
-**docker-compose.yml:**
-```yaml
-services:
-  db:
-    image: postgres:16
-    environment:
-      POSTGRES_DB: myapp
-      POSTGRES_USER: myapp
-      POSTGRES_PASSWORD: devpassword
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-  web:
-    build: .
-    command: python manage.py runserver 0.0.0.0:8000
-    volumes:
-      - .:/app
-      # Mount 1Password session
-      - ~/.op:/root/.op:ro
-    environment:
-      DATABASE_URL: postgres://myapp:devpassword@db:5432/myapp
-      DJANGO_SETTINGS_MODULE: myproject.settings
-    ports:
-      - "8000:8000"
-    depends_on:
-      - db
-
-volumes:
-  postgres_data:
 ```
 
 ## Configuration
@@ -164,17 +91,33 @@ volumes:
 superuser_reference = "op://Development/Django Admin"
 superuser_lookup_fields = ["username", "email"]
 
+# NEW: Set default Docker Compose service
+compose_service = "web"
+
 [tool.epicenv.django.superuser_fields]
 username = "username"
 email = "email"
 password = "password"
 ```
 
+With `compose_service` configured, you don't need the flag:
+
+```bash
+# Before (flag required every time)
+epicenv create-superuser --compose-service web
+
+# After (uses config default)
+epicenv create-superuser
+
+# Can still override
+epicenv create-superuser --compose-service api
+```
+
 See [create-superuser documentation](create-superuser.md) for more configuration options.
 
-## Usage Workflow
+## Usage
 
-### Initial Setup
+### Basic Workflow
 
 **Step 1: Sign in to 1Password (on host machine)**
 ```bash
@@ -192,9 +135,9 @@ docker compose up -d
 docker compose exec web python manage.py migrate
 ```
 
-**Step 4: Create superuser**
+**Step 4: Create superuser (from host)**
 ```bash
-docker compose exec web epicenv create-superuser
+epicenv create-superuser --compose-service web
 ```
 
 Expected output:
@@ -203,7 +146,26 @@ Fetching credentials from 1Password: op://Development/Django Admin
 Success! Created superuser: admin
 ```
 
-### Development Helper Script
+### Command Options
+
+```bash
+# Basic usage
+epicenv create-superuser --compose-service web
+
+# With explicit reference
+epicenv create-superuser --compose-service web --reference "op://vault/item"
+
+# With specific Django settings
+epicenv create-superuser --compose-service web --settings myproject.prod_settings
+
+# All together
+epicenv create-superuser \
+  --compose-service web \
+  --reference "op://Production/Django Admin" \
+  --settings myproject.prod_settings
+```
+
+## Development Helper Script
 
 Create a convenience script for development setup:
 
@@ -212,6 +174,20 @@ Create a convenience script for development setup:
 #!/bin/bash
 set -e
 
+echo "🔐 Checking 1Password CLI..."
+if ! command -v op &> /dev/null; then
+    echo "❌ 1Password CLI not found. Install: https://developer.1password.com/docs/cli/get-started/"
+    exit 1
+fi
+
+echo "✅ 1Password CLI found"
+
+echo "🔑 Ensuring signed in to 1Password..."
+if ! op vault list &> /dev/null; then
+    echo "Please sign in to 1Password:"
+    op signin
+fi
+
 echo "🐳 Building containers..."
 docker compose build
 
@@ -219,25 +195,13 @@ echo "⏳ Starting services..."
 docker compose up -d
 
 echo "⏳ Waiting for database to be ready..."
-docker compose exec -T web python -c "
-import time
-from django.db import connection
-for i in range(30):
-    try:
-        connection.ensure_connection()
-        print('✅ Database ready!')
-        break
-    except Exception:
-        if i == 29:
-            raise
-        time.sleep(1)
-"
+sleep 5  # Give database time to initialize
 
 echo "🔄 Running migrations..."
 docker compose exec -T web python manage.py migrate
 
 echo "👤 Creating superuser..."
-docker compose exec -T web epicenv create-superuser
+epicenv create-superuser --compose-service web
 
 echo "✅ Development environment ready!"
 echo "   Access admin: http://localhost:8000/admin"
@@ -249,38 +213,52 @@ chmod +x scripts/setup-dev.sh
 ./scripts/setup-dev.sh
 ```
 
+## How It Works
+
+The `--compose-service` flag changes the execution strategy:
+
+### Without --compose-service (Local)
+```bash
+epicenv create-superuser
+# → Runs: python -c "<django_script>" admin admin@example.com secret123
+# → Django runs in your local Python environment
+```
+
+### With --compose-service (Docker)
+```bash
+epicenv create-superuser --compose-service web
+# → Runs: docker compose exec -T web python -c "<django_script>" admin admin@example.com secret123
+# → Django runs inside the 'web' container
+# → 1Password CLI stays on host!
+```
+
+The command:
+1. Fetches credentials from 1Password on **host** (where CLI is installed)
+2. Passes credentials + environment to **container** via `docker compose exec`
+3. Executes Django code **inside container** to create/update user
+
 ## Production Deployment
 
 ### Using 1Password Service Accounts
 
-For production and CI/CD, use [1Password Service Accounts](https://developer.1password.com/docs/service-accounts/) instead of personal sessions:
+For production and CI/CD, use [1Password Service Accounts](https://developer.1password.com/docs/service-accounts/) on your deployment machine:
 
 **1. Create a Service Account**
 
 In 1Password, create a service account with read-only access to your secrets vault.
 
-**2. Update docker-compose.prod.yml**
-
-```yaml
-services:
-  web:
-    build: .
-    environment:
-      OP_SERVICE_ACCOUNT_TOKEN: ${OP_SERVICE_ACCOUNT_TOKEN}
-      DATABASE_URL: ${DATABASE_URL}
-      DJANGO_SETTINGS_MODULE: myproject.settings
-    # Don't mount ~/.op in production
-```
-
-**3. Deploy**
+**2. Update deployment workflow**
 
 ```bash
+# Set service account token on deployment machine
 export OP_SERVICE_ACCOUNT_TOKEN="ops_..."
+
+# Deploy containers
 docker compose -f docker-compose.prod.yml up -d
 
-# Run migrations and create superuser
-docker compose -f docker-compose.prod.yml exec web python manage.py migrate
-docker compose -f docker-compose.prod.yml exec web epicenv create-superuser
+# Run migrations and create superuser (from host)
+docker compose -f docker-compose.prod.yml exec -T web python manage.py migrate
+epicenv create-superuser --compose-service web --settings myproject.prod_settings
 ```
 
 ### CI/CD Integration
@@ -300,64 +278,102 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Install 1Password CLI
+        run: |
+          curl -sSO https://downloads.1password.com/linux/debian/amd64/stable/1password-cli-amd64-latest.deb
+          sudo dpkg -i 1password-cli-amd64-latest.deb
+
+      - name: Install epicenv
+        run: pip install epicenv
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
       - name: Build and deploy
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           docker compose -f docker-compose.prod.yml build
           docker compose -f docker-compose.prod.yml up -d
           docker compose -f docker-compose.prod.yml exec -T web python manage.py migrate
-          docker compose -f docker-compose.prod.yml exec -T web epicenv create-superuser
+
+          # Create superuser from host using epicenv
+          epicenv create-superuser --compose-service web
 ```
 
 Store `OP_SERVICE_ACCOUNT_TOKEN` in GitHub Secrets.
 
-## How It Works
+## Comparison: Old vs New Approach
 
-The `epicenv create-superuser` command uses a subprocess approach:
+### ❌ Old Approach (Complicated)
+```yaml
+# docker-compose.yml - Had to mount 1Password session
+services:
+  web:
+    volumes:
+      - ~/.op:/root/.op:ro  # Mount 1Password session
+```
 
-1. **Fetch credentials**: Runs on host (or in container with 1Password CLI access) using 1Password CLI
-2. **Load environment**: Loads epicenv variables from pyproject.toml
-3. **Execute Django**: Runs a Python subprocess with Django code to create/update the superuser
-4. **Idempotent**: Safely creates new user or updates existing user's password
+```dockerfile
+# Dockerfile - Had to install 1Password CLI
+RUN curl -sSO https://downloads.1password.com/linux/debian/amd64/stable/1password-cli-amd64-latest.deb && \
+    dpkg -i 1password-cli-amd64-latest.deb
+```
 
-This design means:
-- 1Password CLI must be available where epicenv runs
-- Django must be installed in the Python environment
-- Works identically in local and containerized environments
+```bash
+# Had to run epicenv inside container
+docker compose exec web epicenv create-superuser
+```
+
+### ✅ New Approach (Simple)
+```yaml
+# docker-compose.yml - No 1Password configuration needed!
+services:
+  web:
+    # Just normal Django setup
+```
+
+```dockerfile
+# Dockerfile - No 1Password installation needed!
+# Just install your app dependencies
+```
+
+```bash
+# Run from host - 1Password stays on host
+epicenv create-superuser --compose-service web
+```
+
+**Benefits:**
+- 🎯 Simpler Docker setup
+- 🔒 1Password credentials never enter containers
+- 📦 Smaller Docker images
+- 🚀 Faster builds (no 1Password CLI installation)
+- 🛡️ Better security posture
 
 ## Troubleshooting
 
 ### "1Password CLI is not available"
 
-**Problem:** Container can't find the `op` command.
+**Problem:** Command fails to fetch credentials from 1Password.
 
-**Solutions:**
+**Solution:** Ensure 1Password CLI is installed **on host** (not in container):
+```bash
+# On host
+op --version
 
-1. **Mount your 1Password session** (Approach 1):
-   ```yaml
-   volumes:
-     - ~/.op:/root/.op:ro
-   ```
+# Sign in if needed
+op signin
+```
 
-2. **Install 1Password CLI in container** (Approach 2):
-   ```dockerfile
-   RUN curl -sSO https://downloads.1password.com/linux/debian/amd64/stable/1password-cli-amd64-latest.deb && \
-       dpkg -i 1password-cli-amd64-latest.deb
-   ```
+### "docker: command not found"
 
-3. **Verify installation**:
-   ```bash
-   docker compose exec web op --version
-   ```
+**Problem:** Docker not available on host when using `--compose-service`.
+
+**Solution:** Install Docker Desktop or Docker Engine on your host machine.
 
 ### "DJANGO_SETTINGS_MODULE not set"
 
-**Problem:** Django can't find settings module.
+**Problem:** Django can't find settings module in container.
 
 **Solutions:**
 
@@ -367,14 +383,9 @@ This design means:
      DJANGO_SETTINGS_MODULE: myproject.settings
    ```
 
-2. **Set in Dockerfile**:
-   ```dockerfile
-   ENV DJANGO_SETTINGS_MODULE=myproject.settings
-   ```
-
-3. **Use --settings flag**:
+2. **Use --settings flag**:
    ```bash
-   docker compose exec web epicenv create-superuser --settings myproject.settings
+   epicenv create-superuser --compose-service web --settings myproject.settings
    ```
 
 ### "Database connection failed"
@@ -386,6 +397,7 @@ This design means:
 1. **Check database is running:**
    ```bash
    docker compose ps
+   docker compose logs db
    ```
 
 2. **Verify DATABASE_URL:**
@@ -393,43 +405,13 @@ This design means:
    docker compose exec web env | grep DATABASE_URL
    ```
 
-3. **Add health check:**
-   ```yaml
-   services:
-     db:
-       healthcheck:
-         test: ["CMD-SHELL", "pg_isready -U myapp"]
-         interval: 5s
-         timeout: 5s
-         retries: 5
-
-     web:
-       depends_on:
-         db:
-           condition: service_healthy
-   ```
-
-### "Session not found" or "Authentication required"
-
-**Problem:** Container can't access your 1Password session.
-
-**Solutions:**
-
-1. **Sign in on host:**
+3. **Ensure db service is ready:**
    ```bash
-   op signin
+   # Wait for database to initialize
+   docker compose up -d db
+   sleep 10  # Give it time to start
+   docker compose up -d web
    ```
-
-2. **Verify session mount:**
-   Check that `~/.op:/root/.op:ro` is in your docker-compose.yml volumes.
-
-3. **Check session in container:**
-   ```bash
-   docker compose exec web op vault list
-   ```
-
-4. **For production, use service account:**
-   Set `OP_SERVICE_ACCOUNT_TOKEN` environment variable instead of mounting `~/.op`.
 
 ### "User table does not exist"
 
@@ -440,39 +422,24 @@ This design means:
 docker compose exec web python manage.py migrate
 ```
 
-### Permission Issues with Mounted Volumes
+### "service 'web' not found"
 
-**Problem:** Files created by container have wrong ownership.
+**Problem:** Service name doesn't match docker-compose.yml.
 
-**Solution:** Run container as your user:
-```yaml
-services:
-  web:
-    user: "${UID}:${GID}"
-```
-
-Set in your environment:
+**Solution:** Use the exact service name from your docker-compose.yml:
 ```bash
-export UID=$(id -u)
-export GID=$(id -g)
-docker compose up
+# If your service is called 'django' instead of 'web'
+epicenv create-superuser --compose-service django
 ```
 
 ## Best Practices
 
-1. **Use `docker compose exec` for running containers** - Faster than `docker compose run`
-
-2. **Mount `~/.op` read-only** (`:ro` flag) to prevent accidental modifications
-
-3. **Use service accounts in production** instead of personal 1Password sessions
-
-4. **Run migrations before create-superuser** to ensure database tables exist
-
-5. **Create setup scripts** to automate the development environment setup
-
-6. **Don't commit .env files** - Use 1Password for all sensitive data
-
-7. **Use health checks** in docker-compose.yml to ensure database is ready
+1. **Keep 1Password on host** - Never install 1Password CLI in containers
+2. **Use service accounts in production** - Don't use personal 1Password sessions in CI/CD
+3. **Run from host** - Always run `epicenv create-superuser --compose-service <name>` from host
+4. **Run migrations first** - Ensure database tables exist before creating users
+5. **Use environment variables** - Set `DJANGO_SETTINGS_MODULE` in docker-compose.yml
+6. **Create setup scripts** - Automate the workflow for new developers
 
 ## Related Documentation
 

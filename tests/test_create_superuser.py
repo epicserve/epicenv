@@ -23,6 +23,7 @@ runner : CliRunner (custom fixture)
 """
 
 import subprocess
+import sys
 from unittest.mock import MagicMock
 
 import pytest
@@ -53,7 +54,7 @@ class TestCreateSuperuserCommand:
     @pytest.fixture
     def runner(self):
         """
-        Provides a Click CliRunner for testing CLI commands.
+        Provide a Click CliRunner for testing CLI commands.
 
         Returns:
             CliRunner: Click test runner instance for invoking CLI commands
@@ -380,6 +381,23 @@ password = "pass"
         assert config["superuser_fields"]["email"] == "mail"
         assert config["superuser_fields"]["password"] == "pass"  # noqa: S105
 
+    def test_load_django_config_with_compose_service(self, tmp_path):
+        """Test loading django config with compose_service."""
+        pyproject = tmp_path / "pyproject.toml"
+        pyproject.write_text(
+            """
+[tool.epicenv.django]
+superuser_reference = "op://Dev/Admin"
+compose_service = "web"
+"""
+        )
+
+        from epicenv._config import get_django_config
+
+        config = get_django_config(pyproject)
+        assert config["superuser_reference"] == "op://Dev/Admin"
+        assert config["compose_service"] == "web"
+
     def test_empty_django_config(self, tmp_path):
         """Test when no django config exists."""
         pyproject = tmp_path / "pyproject.toml"
@@ -511,3 +529,155 @@ class TestSubprocessIntegration:
         # [python_path, '-c', script, 'admin', 'admin@example.com', 'secret', 'username, email']
         assert len(call_args[0][0]) >= 7, "Subprocess should have 7+ arguments"
         assert call_args[0][0][6] == "username,email", "Lookup fields should be 'username,email'"
+
+    def test_docker_compose_execution(self, mocker, tmp_path):
+        """Test execution via docker compose when --compose-service is provided."""
+        from epicenv.cli.create_superuser import create_superuser
+
+        pyproject = tmp_path / "pyproject.toml"
+        mocker.patch("epicenv.cli.create_superuser.find_pyproject_toml", return_value=pyproject)
+        mocker.patch(
+            "epicenv.cli.create_superuser.get_django_config",
+            return_value={"superuser_reference": "op://vault/item"},
+        )
+        mocker.patch(
+            "epicenv.cli.create_superuser._check_onepassword_available",
+            return_value=(True, None),
+        )
+        mocker.patch(
+            "epicenv.cli.create_superuser._fetch_superuser_credentials",
+            return_value=(UserCredentials("admin", "admin@example.com", "secret"), None),
+        )
+        mocker.patch.dict("os.environ", {"DJANGO_SETTINGS_MODULE": "myproject.settings"})
+
+        mock_result = MagicMock()
+        mock_result.stdout = "CREATED:admin"
+        mock_run = mocker.patch("subprocess.run", return_value=mock_result)
+
+        # Call with compose_service
+        create_superuser(reference="op://vault/item", compose_service="web")
+
+        # Verify docker compose exec was used
+        call_args = mock_run.call_args
+        cmd = call_args[0][0]
+
+        assert cmd[0] == "docker", "Should use docker command"
+        assert cmd[1] == "compose", "Should use compose subcommand"
+        assert cmd[2] == "exec", "Should use exec subcommand"
+        assert cmd[3] == "-T", "Should disable TTY"
+        assert "-e" in cmd, "Should pass environment variable"
+        assert "DJANGO_SETTINGS_MODULE=myproject.settings" in cmd, "Should pass Django settings"
+        assert "web" in cmd, "Should specify service name"
+        assert "python" in cmd, "Should run python"
+
+        # Verify env is None (docker compose inherits from host)
+        assert call_args[1]["env"] is None, "Should not pass env dict to docker compose"
+
+    def test_compose_service_from_config(self, mocker, tmp_path):
+        """Test that compose_service can be set via config."""
+        from epicenv.cli.create_superuser import create_superuser
+
+        pyproject = tmp_path / "pyproject.toml"
+        mocker.patch("epicenv.cli.create_superuser.find_pyproject_toml", return_value=pyproject)
+        mocker.patch(
+            "epicenv.cli.create_superuser.get_django_config",
+            return_value={
+                "superuser_reference": "op://vault/item",
+                "compose_service": "web",  # Set in config
+            },
+        )
+        mocker.patch(
+            "epicenv.cli.create_superuser._check_onepassword_available",
+            return_value=(True, None),
+        )
+        mocker.patch(
+            "epicenv.cli.create_superuser._fetch_superuser_credentials",
+            return_value=(UserCredentials("admin", "admin@example.com", "secret"), None),
+        )
+        mocker.patch.dict("os.environ", {"DJANGO_SETTINGS_MODULE": "myproject.settings"})
+
+        mock_result = MagicMock()
+        mock_result.stdout = "CREATED:admin"
+        mock_run = mocker.patch("subprocess.run", return_value=mock_result)
+
+        # Call WITHOUT --compose-service flag
+        create_superuser(reference="op://vault/item")
+
+        # Verify docker compose exec was used with "web" from config
+        call_args = mock_run.call_args
+        cmd = call_args[0][0]
+        assert cmd[0] == "docker", "Should use docker command"
+        assert "web" in cmd, "Should use 'web' service from config"
+
+    def test_flag_overrides_config(self, mocker, tmp_path):
+        """Test that --compose-service flag overrides config."""
+        from epicenv.cli.create_superuser import create_superuser
+
+        pyproject = tmp_path / "pyproject.toml"
+        mocker.patch("epicenv.cli.create_superuser.find_pyproject_toml", return_value=pyproject)
+        mocker.patch(
+            "epicenv.cli.create_superuser.get_django_config",
+            return_value={
+                "superuser_reference": "op://vault/item",
+                "compose_service": "web",  # Config says "web"
+            },
+        )
+        mocker.patch(
+            "epicenv.cli.create_superuser._check_onepassword_available",
+            return_value=(True, None),
+        )
+        mocker.patch(
+            "epicenv.cli.create_superuser._fetch_superuser_credentials",
+            return_value=(UserCredentials("admin", "admin@example.com", "secret"), None),
+        )
+        mocker.patch.dict("os.environ", {"DJANGO_SETTINGS_MODULE": "myproject.settings"})
+
+        mock_result = MagicMock()
+        mock_result.stdout = "CREATED:admin"
+        mock_run = mocker.patch("subprocess.run", return_value=mock_result)
+
+        # Call with DIFFERENT flag value
+        create_superuser(reference="op://vault/item", compose_service="api")
+
+        # Verify "api" was used (not "web" from config)
+        call_args = mock_run.call_args
+        cmd = call_args[0][0]
+        assert cmd[0] == "docker", "Should use docker command"
+        assert "api" in cmd, "Should use 'api' from flag (not 'web' from config)"
+        assert "web" not in cmd, "Should NOT use 'web' from config"
+
+    def test_no_config_no_flag_runs_locally(self, mocker, tmp_path):
+        """Test that absence of both config and flag runs locally."""
+        from epicenv.cli.create_superuser import create_superuser
+
+        pyproject = tmp_path / "pyproject.toml"
+        mocker.patch("epicenv.cli.create_superuser.find_pyproject_toml", return_value=pyproject)
+        mocker.patch(
+            "epicenv.cli.create_superuser.get_django_config",
+            return_value={
+                "superuser_reference": "op://vault/item",
+                # No compose_service in config
+            },
+        )
+        mocker.patch(
+            "epicenv.cli.create_superuser._check_onepassword_available",
+            return_value=(True, None),
+        )
+        mocker.patch(
+            "epicenv.cli.create_superuser._fetch_superuser_credentials",
+            return_value=(UserCredentials("admin", "admin@example.com", "secret"), None),
+        )
+        mocker.patch.dict("os.environ", {"DJANGO_SETTINGS_MODULE": "myproject.settings"})
+
+        mock_result = MagicMock()
+        mock_result.stdout = "CREATED:admin"
+        mock_run = mocker.patch("subprocess.run", return_value=mock_result)
+
+        # Call without flag
+        create_superuser(reference="op://vault/item")
+
+        # Verify local execution (sys.executable, not docker)
+        call_args = mock_run.call_args
+        cmd = call_args[0][0]
+        assert cmd[0] == sys.executable, "Should run locally with sys.executable"
+        assert "docker" not in cmd, "Should NOT use docker"
