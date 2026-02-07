@@ -93,7 +93,7 @@ def check_user_table_exists() -> tuple[bool, str | None]:
     except Exception as e:
         error_str = str(e).lower()
         if "no such table" in error_str or "does not exist" in error_str:
-            return False, ("User table does not exist. Run migrations first:\npython manage.py migrate")
+            return False, "User table does not exist. Run migrations first:\npython manage.py migrate"
         return False, f"Error checking user table: {e}"
 
 
@@ -121,9 +121,10 @@ def find_existing_user(lookup_fields: dict[str, str]) -> AbstractUser | None:
     Returns:
         User instance if found, None otherwise
     """
+    from django.contrib.auth import get_user_model
     from django.db.models import Q
 
-    User = get_user_model_class()
+    User = get_user_model()
 
     if not lookup_fields:
         return None
@@ -152,7 +153,9 @@ def create_superuser(username: str, email: str, password: str) -> tuple[Any, str
     Returns:
         Tuple of (user_instance, error_message)
     """
-    User = get_user_model_class()
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
 
     try:
         user = User.objects.create_superuser(

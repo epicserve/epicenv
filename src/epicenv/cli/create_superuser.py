@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import os
+import subprocess
+import sys
 from typing import NamedTuple
 
 import click
@@ -10,8 +13,8 @@ from .._config import find_pyproject_toml, get_django_config
 from ..initializers._onepassword import _check_onepassword_available, _fetch_from_onepassword
 
 
-class SuperuserCredentials(NamedTuple):
-    """Container for superuser credentials."""
+class UserCredentials(NamedTuple):
+    """User credentials for superuser creation."""
 
     username: str
     email: str
@@ -21,7 +24,7 @@ class SuperuserCredentials(NamedTuple):
 def _fetch_superuser_credentials(
     reference: str,
     config: dict,
-) -> tuple[SuperuserCredentials | None, str | None]:
+) -> tuple[UserCredentials | None, str | None]:
     """
     Fetch superuser credentials from 1Password.
 
@@ -51,56 +54,55 @@ def _fetch_superuser_credentials(
     if error:
         return None, f"Failed to fetch password: {error}"
 
-    return SuperuserCredentials(username=username, email=email, password=password), None
+    return UserCredentials(username=username, email=email, password=password), None
 
 
-def _create_or_update_superuser(
-    credentials: SuperuserCredentials,
-    lookup_fields: list[str],
-) -> tuple[bool, str, bool]:
-    """
-    Create or update a Django superuser.
+# Inline script that will be executed via subprocess
+_CREATE_SUPERUSER_SCRIPT = """
+import sys
+import os
 
-    Args:
-        credentials: The superuser credentials
-        lookup_fields: Fields to use for existence check (e.g., ["username", "email"])
+# Parse arguments
+username = sys.argv[1]
+email = sys.argv[2]
+password = sys.argv[3]
+lookup_fields = sys.argv[4].split(',') if sys.argv[4] else ['username']
 
-    Returns:
-        Tuple of (success, message, was_created)
-    """
-    from .._django import (
-        create_superuser,
-        find_existing_user,
-        update_user_password,
-    )
+# Setup Django
+import django
+django.setup()
 
-    # Build lookup dict from credentials
-    lookup_dict = {}
-    if "username" in lookup_fields:
-        lookup_dict["username"] = credentials.username
-    if "email" in lookup_fields:
-        lookup_dict["email"] = credentials.email
+from django.contrib.auth import get_user_model
+from django.db.models import Q
 
-    # Check if user exists
-    existing_user = find_existing_user(lookup_dict)
+User = get_user_model()
 
-    if existing_user:
-        # Update password for existing user
-        success, error = update_user_password(existing_user, credentials.password)
-        if success:
-            return True, f"Updated password for existing user: {existing_user.username}", False
-        return False, error or "Failed to update password", False
+# Build lookup query
+lookup_dict = {}
+if 'username' in lookup_fields:
+    lookup_dict['username'] = username
+if 'email' in lookup_fields:
+    lookup_dict['email'] = email
 
-    # Create new superuser
-    user, error = create_superuser(
-        username=credentials.username,
-        email=credentials.email,
-        password=credentials.password,
-    )
+# Check if user exists
+existing_user = None
+if lookup_dict:
+    query = Q()
+    for field, value in lookup_dict.items():
+        if value:
+            query |= Q(**{field: value})
+    if query:
+        existing_user = User.objects.filter(query).first()
 
-    if user:
-        return True, f"Created superuser: {user.username}", True
-    return False, error or "Failed to create superuser", False
+# Create or update
+if existing_user:
+    existing_user.set_password(password)
+    existing_user.save(update_fields=['password'])
+    print(f"UPDATED:{existing_user.username}")
+else:
+    user = User.objects.create_superuser(username=username, email=email, password=password)
+    print(f"CREATED:{user.username}")
+"""
 
 
 def create_superuser(
@@ -109,6 +111,9 @@ def create_superuser(
 ) -> None:
     """
     Create a Django superuser from 1Password credentials.
+
+    This command fetches credentials from 1Password on the host machine,
+    then uses subprocess to create the superuser in Django's environment.
 
     Args:
         reference: Optional 1Password reference override
@@ -131,41 +136,7 @@ def create_superuser(
         click.echo('superuser_reference = "op://vault/item"')
         raise click.Abort()
 
-    # 4. Check Django availability
-    from .._django import check_django_available
-
-    is_available, error = check_django_available()
-    if not is_available:
-        click.echo(click.style("Error: ", fg="red", bold=True) + (error or "Django not available"))
-        click.echo("\nInstall Django with: pip install django")
-        raise click.Abort()
-
-    # 5. Setup Django environment
-    from .._django import setup_django_environment
-
-    success, error = setup_django_environment(settings_module)
-    if not success:
-        click.echo(click.style("Error: ", fg="red", bold=True) + (error or "Django setup failed"))
-        raise click.Abort()
-
-    # 6. Check database connectivity
-    from .._django import check_database_ready
-
-    success, error = check_database_ready()
-    if not success:
-        click.echo(click.style("Error: ", fg="red", bold=True) + (error or "Database not ready"))
-        click.echo("\nMake sure your database is running.")
-        raise click.Abort()
-
-    # 7. Check user table exists
-    from .._django import check_user_table_exists
-
-    success, error = check_user_table_exists()
-    if not success:
-        click.echo(click.style("Error: ", fg="red", bold=True) + (error or "User table not found"))
-        raise click.Abort()
-
-    # 8. Check 1Password availability
+    # 4. Check 1Password availability (on host)
     is_available, error = _check_onepassword_available()
     if not is_available:
         click.echo(click.style("Error: ", fg="red", bold=True) + "1Password CLI is not available")
@@ -174,20 +145,84 @@ def create_superuser(
         click.echo("\nSetup: https://developer.1password.com/docs/cli/get-started/")
         raise click.Abort()
 
-    # 9. Fetch credentials
+    # 5. Fetch credentials (on host)
     click.echo(f"Fetching credentials from 1Password: {final_reference}")
     credentials, error = _fetch_superuser_credentials(final_reference, config)
     if not credentials:
         click.echo(click.style("Error: ", fg="red", bold=True) + (error or "Failed to fetch credentials"))
         raise click.Abort()
 
-    # 10. Create or update user
-    lookup_fields = config.get("superuser_lookup_fields", ["username"])
-    success, message, was_created = _create_or_update_superuser(credentials, lookup_fields)
+    # 6. Prepare subprocess environment (inherit current env)
+    subprocess_env = dict(os.environ)
 
-    if success:
-        action = "Created" if was_created else "Updated"
-        click.echo(click.style("Success! ", fg="green", bold=True) + f"{action} superuser: {credentials.username}")
-    else:
-        click.echo(click.style("Error: ", fg="red", bold=True) + message)
+    # 7. Set Django settings module if provided
+    if settings_module:
+        subprocess_env["DJANGO_SETTINGS_MODULE"] = settings_module
+
+    # 8. Check if DJANGO_SETTINGS_MODULE is set
+    if "DJANGO_SETTINGS_MODULE" not in subprocess_env:
+        click.echo(click.style("Error: ", fg="red", bold=True) + "DJANGO_SETTINGS_MODULE not set")
+        click.echo("\nSet it with: export DJANGO_SETTINGS_MODULE=myproject.settings")
+        click.echo("Or use the --settings flag.")
         raise click.Abort()
+
+    # 9. Execute subprocess to create/update superuser
+    lookup_fields = config.get("superuser_lookup_fields", ["username"])
+    lookup_str = ",".join(lookup_fields)
+
+    try:
+        result = subprocess.run(  # noqa: S603
+            [
+                sys.executable,
+                "-c",
+                _CREATE_SUPERUSER_SCRIPT,
+                credentials.username,
+                credentials.email,
+                credentials.password,
+                lookup_str,
+            ],
+            env=subprocess_env,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        # Parse output to determine if user was created or updated
+        output = result.stdout.strip()
+        if output.startswith("CREATED:"):
+            username = output.split(":", 1)[1]
+            click.echo(click.style("Success! ", fg="green", bold=True) + f"Created superuser: {username}")
+        elif output.startswith("UPDATED:"):
+            username = output.split(":", 1)[1]
+            click.echo(
+                click.style("Success! ", fg="green", bold=True) + f"Updated password for existing user: {username}"
+            )
+        else:
+            click.echo(
+                click.style("Success! ", fg="green", bold=True)
+                + f"Superuser operation completed: {credentials.username}"
+            )
+
+    except subprocess.CalledProcessError as e:
+        click.echo(click.style("Error: ", fg="red", bold=True) + "Failed to create/update superuser")
+        if e.stderr:
+            click.echo(f"\n{e.stderr}")
+        raise click.Abort() from e
+    except Exception as e:
+        click.echo(click.style("Error: ", fg="red", bold=True) + f"Subprocess execution failed: {e}")
+        raise click.Abort() from e
+
+
+@click.command("create-superuser")
+@click.option(
+    "--reference",
+    help="1Password reference to superuser credentials (e.g., op://vault/item)",
+)
+@click.option(
+    "--settings",
+    "settings_module",
+    help="Django settings module (e.g., 'myproject.settings')",
+)
+def cli(reference: str | None, settings_module: str | None) -> None:
+    """Create or update Django superuser from 1Password credentials."""
+    create_superuser(reference=reference, settings_module=settings_module)

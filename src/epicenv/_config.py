@@ -67,9 +67,30 @@ def get_config(pyproject_path: Path) -> dict:
     return config
 
 
+def get_framework_config(pyproject_path: Path, framework: str) -> dict:
+    """
+    Load [tool.epicenv.{framework}] config from pyproject.toml.
+
+    Generic config getter for any framework (django, flask, fastapi, etc.).
+
+    Args:
+        pyproject_path: Path to pyproject.toml file.
+        framework: Framework name (e.g., "django", "flask", "fastapi")
+
+    Returns:
+        Dictionary of framework-specific configuration settings.
+    """
+    with open(pyproject_path, "rb") as f:
+        data = tomllib.load(f)
+
+    return data.get("tool", {}).get("epicenv", {}).get(framework, {})
+
+
 def get_django_config(pyproject_path: Path) -> dict:
     """
     Load [tool.epicenv.django] config from pyproject.toml.
+
+    Convenience function that delegates to get_framework_config.
 
     Args:
         pyproject_path: Path to pyproject.toml file.
@@ -77,7 +98,4 @@ def get_django_config(pyproject_path: Path) -> dict:
     Returns:
         Dictionary of Django-specific configuration settings.
     """
-    with open(pyproject_path, "rb") as f:
-        data = tomllib.load(f)
-
-    return data.get("tool", {}).get("epicenv", {}).get("django", {})
+    return get_framework_config(pyproject_path, "django")

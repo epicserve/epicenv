@@ -123,3 +123,58 @@ python manage.py migrate
 ### "Field not found in 1Password"
 
 Verify that your 1Password item has the required fields (username, email, password) or configure custom field names in `pyproject.toml`.
+
+## How It Works
+
+The `epicenv create-superuser` command uses a subprocess approach:
+
+1. **Fetch credentials** from 1Password using the 1Password CLI
+2. **Load environment** variables from your epicenv configuration
+3. **Execute Django** code in a subprocess to create/update the superuser
+4. **Idempotent** operation - safely creates or updates as needed
+
+This means:
+- 1Password CLI must be available where the command runs
+- Django must be installed in the Python environment
+- Works identically in local and containerized environments
+
+## Docker and Docker Compose
+
+For containerized Django applications, you can run `epicenv create-superuser` inside your Docker containers. The command works seamlessly with the `docker compose exec` workflow you're already using for Django management commands.
+
+### Quick Example
+
+```bash
+# Run in a container (same pattern as ./manage.py commands)
+docker compose exec web epicenv create-superuser
+```
+
+### Setup Requirements
+
+For Docker workflows, you need 1Password CLI access in the container. Two approaches:
+
+1. **Mount 1Password session** (Recommended for development):
+   ```yaml
+   # docker-compose.yml
+   services:
+     web:
+       volumes:
+         - ~/.op:/root/.op:ro  # Mount session from host
+   ```
+
+2. **Install 1Password CLI in container** (For production or when needed):
+   ```dockerfile
+   RUN curl -sSO https://downloads.1password.com/linux/debian/amd64/stable/1password-cli-amd64-latest.deb && \
+       dpkg -i 1password-cli-amd64-latest.deb
+   ```
+
+### Complete Guide
+
+For comprehensive Docker Compose setup including:
+- Complete Dockerfile and docker-compose.yml examples
+- Development and production deployment patterns
+- CI/CD integration with GitHub Actions
+- Troubleshooting Docker-specific issues
+- Helper scripts for development setup
+
+See the **[Docker Compose Guide](docker-compose.md)**.
