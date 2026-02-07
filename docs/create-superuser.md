@@ -185,12 +185,15 @@ epicenv create-superuser --compose-service web
 1. **Fetches credentials** from 1Password on your **host** (where CLI is installed)
 2. **Passes credentials** to your Docker container
 3. **Executes Django** code inside the container via `docker compose exec -T`
+4. **Uses container's environment** - `DJANGO_SETTINGS_MODULE` from docker-compose.yml
+
+**Note**: The `--settings` flag is optional when using `--compose-service`. The container's `DJANGO_SETTINGS_MODULE` will be used unless you override it.
 
 ### Setup Requirements
 
 - 1Password CLI installed **on host only** (not in containers)
 - Docker Compose running
-- `DJANGO_SETTINGS_MODULE` set in docker-compose.yml
+- `DJANGO_SETTINGS_MODULE` set in docker-compose.yml **(not required on host)**
 
 **docker-compose.yml example:**
 ```yaml

@@ -27,6 +27,7 @@ epicenv create-superuser --compose-service web
 - 1Password CLI installed **on host only** (not in containers)
 - Django project with epicenv configured in [pyproject.toml](../README.md#quick-start)
 - epicenv installed **on host** (you can optionally install it in containers too)
+- `DJANGO_SETTINGS_MODULE` set in docker-compose.yml **(not required on host)**
 
 ## Setup
 
@@ -112,6 +113,8 @@ epicenv create-superuser
 # Can still override
 epicenv create-superuser --compose-service api
 ```
+
+**Note**: The `--settings` flag is optional when using `--compose-service`. The command uses the container's `DJANGO_SETTINGS_MODULE` from docker-compose.yml unless you override it with `--settings`.
 
 See [create-superuser documentation](create-superuser.md) for more configuration options.
 

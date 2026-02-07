@@ -165,41 +165,48 @@ def create_superuser(
     if settings_module:
         subprocess_env["DJANGO_SETTINGS_MODULE"] = settings_module
 
-    # 8. Check if DJANGO_SETTINGS_MODULE is set
-    if "DJANGO_SETTINGS_MODULE" not in subprocess_env:
-        click.echo(click.style("Error: ", fg="red", bold=True) + "DJANGO_SETTINGS_MODULE not set")
-        click.echo("\nSet it with: export DJANGO_SETTINGS_MODULE=myproject.settings")
-        click.echo("Or use the --settings flag.")
-        raise click.Abort()
-
-    # 9. Execute subprocess to create/update superuser
+    # 8. Execute subprocess to create/update superuser
     lookup_fields = config.get("superuser_lookup_fields", ["username"])
     lookup_str = ",".join(lookup_fields)
 
-    # Build the command
+    # Build the command based on execution mode
     if final_compose_service:
         # Run Django code in Docker container via docker compose exec
-        # Pass environment variables and execute Python script
+        # Container provides its own DJANGO_SETTINGS_MODULE from docker-compose.yml
         cmd = [
             "docker",
             "compose",
             "exec",
             "-T",  # Disable pseudo-TTY
-            "-e",
-            f"DJANGO_SETTINGS_MODULE={subprocess_env.get('DJANGO_SETTINGS_MODULE', '')}",
-            final_compose_service,
-            "python",
-            "-c",
-            _CREATE_SUPERUSER_SCRIPT,
-            credentials.username,
-            credentials.email,
-            credentials.password,
-            lookup_str,
         ]
+
+        # Only pass DJANGO_SETTINGS_MODULE if explicitly provided via --settings
+        if settings_module:
+            cmd.extend(["-e", f"DJANGO_SETTINGS_MODULE={settings_module}"])
+
+        cmd.extend(
+            [
+                final_compose_service,
+                "python",
+                "-c",
+                _CREATE_SUPERUSER_SCRIPT,
+                credentials.username,
+                credentials.email,
+                credentials.password,
+                lookup_str,
+            ]
+        )
+
         # Don't pass full env to docker compose (it inherits from host)
         env = None
     else:
-        # Run Django code locally
+        # Run Django code locally - DJANGO_SETTINGS_MODULE required
+        if "DJANGO_SETTINGS_MODULE" not in subprocess_env:
+            click.echo(click.style("Error: ", fg="red", bold=True) + "DJANGO_SETTINGS_MODULE not set")
+            click.echo("\nSet it with: export DJANGO_SETTINGS_MODULE=myproject.settings")
+            click.echo("Or use the --settings flag.")
+            raise click.Abort()
+
         cmd = [
             sys.executable,
             "-c",

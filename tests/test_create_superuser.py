@@ -26,6 +26,7 @@ import subprocess
 import sys
 from unittest.mock import MagicMock
 
+import click
 import pytest
 from click.testing import CliRunner
 
@@ -548,13 +549,14 @@ class TestSubprocessIntegration:
             "epicenv.cli.create_superuser._fetch_superuser_credentials",
             return_value=(UserCredentials("admin", "admin@example.com", "secret"), None),
         )
-        mocker.patch.dict("os.environ", {"DJANGO_SETTINGS_MODULE": "myproject.settings"})
+        # Don't mock DJANGO_SETTINGS_MODULE - container should provide it
+        mocker.patch.dict("os.environ", {}, clear=True)
 
         mock_result = MagicMock()
         mock_result.stdout = "CREATED:admin"
         mock_run = mocker.patch("subprocess.run", return_value=mock_result)
 
-        # Call with compose_service
+        # Call with compose_service (should work without DJANGO_SETTINGS_MODULE on host)
         create_superuser(reference="op://vault/item", compose_service="web")
 
         # Verify docker compose exec was used
@@ -565,8 +567,10 @@ class TestSubprocessIntegration:
         assert cmd[1] == "compose", "Should use compose subcommand"
         assert cmd[2] == "exec", "Should use exec subcommand"
         assert cmd[3] == "-T", "Should disable TTY"
-        assert "-e" in cmd, "Should pass environment variable"
-        assert "DJANGO_SETTINGS_MODULE=myproject.settings" in cmd, "Should pass Django settings"
+        # Should NOT pass -e DJANGO_SETTINGS_MODULE since not explicitly set via --settings
+        assert "-e" not in cmd or "DJANGO_SETTINGS_MODULE" not in " ".join(cmd), (
+            "Should not pass Django settings when not explicitly set"
+        )
         assert "web" in cmd, "Should specify service name"
         assert "python" in cmd, "Should run python"
 
@@ -594,7 +598,8 @@ class TestSubprocessIntegration:
             "epicenv.cli.create_superuser._fetch_superuser_credentials",
             return_value=(UserCredentials("admin", "admin@example.com", "secret"), None),
         )
-        mocker.patch.dict("os.environ", {"DJANGO_SETTINGS_MODULE": "myproject.settings"})
+        # Don't mock DJANGO_SETTINGS_MODULE - container should provide it
+        mocker.patch.dict("os.environ", {}, clear=True)
 
         mock_result = MagicMock()
         mock_result.stdout = "CREATED:admin"
@@ -630,7 +635,8 @@ class TestSubprocessIntegration:
             "epicenv.cli.create_superuser._fetch_superuser_credentials",
             return_value=(UserCredentials("admin", "admin@example.com", "secret"), None),
         )
-        mocker.patch.dict("os.environ", {"DJANGO_SETTINGS_MODULE": "myproject.settings"})
+        # Don't mock DJANGO_SETTINGS_MODULE - container should provide it
+        mocker.patch.dict("os.environ", {}, clear=True)
 
         mock_result = MagicMock()
         mock_result.stdout = "CREATED:admin"
@@ -681,3 +687,97 @@ class TestSubprocessIntegration:
         cmd = call_args[0][0]
         assert cmd[0] == sys.executable, "Should run locally with sys.executable"
         assert "docker" not in cmd, "Should NOT use docker"
+
+    def test_docker_without_settings_module(self, mocker, tmp_path):
+        """Test that docker execution works without DJANGO_SETTINGS_MODULE on host."""
+        from epicenv.cli.create_superuser import create_superuser
+
+        pyproject = tmp_path / "pyproject.toml"
+        # Mock WITHOUT DJANGO_SETTINGS_MODULE in environ
+        mocker.patch.dict("os.environ", {}, clear=True)
+        mocker.patch("epicenv.cli.create_superuser.find_pyproject_toml", return_value=pyproject)
+        mocker.patch(
+            "epicenv.cli.create_superuser.get_django_config",
+            return_value={"superuser_reference": "op://vault/item"},
+        )
+        mocker.patch(
+            "epicenv.cli.create_superuser._check_onepassword_available",
+            return_value=(True, None),
+        )
+        mocker.patch(
+            "epicenv.cli.create_superuser._fetch_superuser_credentials",
+            return_value=(UserCredentials("admin", "admin@example.com", "secret"), None),
+        )
+
+        mock_result = MagicMock()
+        mock_result.stdout = "CREATED:admin"
+        mock_run = mocker.patch("subprocess.run", return_value=mock_result)
+
+        # Should work without DJANGO_SETTINGS_MODULE when using docker
+        create_superuser(reference="op://vault/item", compose_service="web")
+
+        # Verify docker command does NOT include -e DJANGO_SETTINGS_MODULE
+        call_args = mock_run.call_args
+        cmd = call_args[0][0]
+        assert cmd[0] == "docker", "Should use docker command"
+        assert "-e" not in cmd or "DJANGO_SETTINGS_MODULE" not in " ".join(cmd), (
+            "Should not pass Django settings when not explicitly set"
+        )
+
+    def test_docker_with_explicit_settings_module(self, mocker, tmp_path):
+        """Test that explicit --settings adds -e to docker command."""
+        from epicenv.cli.create_superuser import create_superuser
+
+        pyproject = tmp_path / "pyproject.toml"
+        mocker.patch.dict("os.environ", {}, clear=True)
+        mocker.patch("epicenv.cli.create_superuser.find_pyproject_toml", return_value=pyproject)
+        mocker.patch(
+            "epicenv.cli.create_superuser.get_django_config",
+            return_value={"superuser_reference": "op://vault/item"},
+        )
+        mocker.patch(
+            "epicenv.cli.create_superuser._check_onepassword_available",
+            return_value=(True, None),
+        )
+        mocker.patch(
+            "epicenv.cli.create_superuser._fetch_superuser_credentials",
+            return_value=(UserCredentials("admin", "admin@example.com", "secret"), None),
+        )
+
+        mock_result = MagicMock()
+        mock_result.stdout = "CREATED:admin"
+        mock_run = mocker.patch("subprocess.run", return_value=mock_result)
+
+        # Pass explicit settings
+        create_superuser(reference="op://vault/item", compose_service="web", settings_module="config.settings")
+
+        # Verify docker command includes -e DJANGO_SETTINGS_MODULE
+        call_args = mock_run.call_args
+        cmd = call_args[0][0]
+        assert "-e" in cmd, "Should include -e flag"
+        assert "DJANGO_SETTINGS_MODULE=config.settings" in cmd, "Should pass Django settings"
+
+    def test_local_without_settings_module_fails(self, mocker, tmp_path):
+        """Test that local execution fails without DJANGO_SETTINGS_MODULE."""
+        from epicenv.cli.create_superuser import create_superuser
+
+        pyproject = tmp_path / "pyproject.toml"
+        # Mock WITHOUT DJANGO_SETTINGS_MODULE in environ
+        mocker.patch.dict("os.environ", {}, clear=True)
+        mocker.patch("epicenv.cli.create_superuser.find_pyproject_toml", return_value=pyproject)
+        mocker.patch(
+            "epicenv.cli.create_superuser.get_django_config",
+            return_value={"superuser_reference": "op://vault/item"},
+        )
+        mocker.patch(
+            "epicenv.cli.create_superuser._check_onepassword_available",
+            return_value=(True, None),
+        )
+        mocker.patch(
+            "epicenv.cli.create_superuser._fetch_superuser_credentials",
+            return_value=(UserCredentials("admin", "admin@example.com", "secret"), None),
+        )
+
+        # Should fail when running locally without DJANGO_SETTINGS_MODULE
+        with pytest.raises(click.Abort):
+            create_superuser(reference="op://vault/item")  # No compose_service = local
