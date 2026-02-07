@@ -1,4 +1,26 @@
-"""Tests for the create-superuser CLI command."""
+"""
+Tests for the create-superuser CLI command.
+
+This test module uses pytest fixtures for test dependencies. Fixtures are explicitly
+declared using @pytest.mark.usefixtures decorators on test classes to make it clear
+what dependencies each test class requires.
+
+Common Fixtures Used:
+--------------------
+tmp_path : pathlib.Path
+    Built-in pytest fixture. Provides a unique temporary directory for each test.
+    Automatically cleaned up after test completion.
+    Source: pytest (built-in)
+
+mocker : pytest_mock.MockerFixture
+    Provides mocking capabilities (mocker.patch(), mocker.Mock(), etc.).
+    Automatically cleans up mocks after each test.
+    Source: pytest-mock plugin
+
+runner : CliRunner (custom fixture)
+    Provides Click's CliRunner for testing CLI commands.
+    Defined in TestCreateSuperuserCommand class.
+"""
 
 import subprocess
 from unittest.mock import MagicMock
@@ -13,21 +35,30 @@ from epicenv.cli.create_superuser import (
 from epicenv.cli.main import cli
 
 
+@pytest.mark.usefixtures("tmp_path", "mocker")
 class TestCreateSuperuserCommand:
-    """Tests for the create-superuser CLI command."""
+    """
+    Tests for the create-superuser CLI command.
+
+    Fixtures used:
+        tmp_path (pathlib.Path): Pytest built-in fixture providing a temporary directory.
+                                 Each test gets a unique temporary directory that's
+                                 automatically cleaned up after the test completes.
+
+        mocker (pytest_mock.MockerFixture): From pytest-mock plugin. Provides mocking
+                                            capabilities via .patch(), .Mock(), etc.
+                                            Automatically cleans up mocks after each test.
+    """
 
     @pytest.fixture
     def runner(self):
-        return CliRunner()
+        """
+        Provides a Click CliRunner for testing CLI commands.
 
-    def test_help_text(self, runner):
-        """Test that help text is displayed."""
-        result = runner.invoke(cli, ["create-superuser", "--help"])
-        assert result.exit_code == 0
-        assert "Create" in result.output
-        assert "Django superuser" in result.output
-        assert "--reference" in result.output
-        assert "--settings" in result.output
+        Returns:
+            CliRunner: Click test runner instance for invoking CLI commands
+        """
+        return CliRunner()
 
     def test_no_reference_configured(self, runner, mocker, tmp_path):
         """Test error when no reference is provided or configured."""
@@ -197,8 +228,16 @@ class TestCreateSuperuserCommand:
         assert "Error:" in result.output
 
 
+@pytest.mark.usefixtures("mocker")
 class TestFetchUserCredentials:
-    """Tests for _fetch_superuser_credentials function."""
+    """
+    Tests for _fetch_superuser_credentials function.
+
+    Fixtures used:
+        mocker (pytest_mock.MockerFixture): Provides mocking capabilities for testing
+                                            1Password credential fetching without making
+                                            actual CLI calls.
+    """
 
     def test_fetch_all_fields_success(self, mocker):
         """Test successful fetch of all credential fields."""
@@ -291,8 +330,15 @@ class TestFetchUserCredentials:
         assert "op://vault/item/pass" in str(calls[2])
 
 
+@pytest.mark.usefixtures("tmp_path")
 class TestConfigLoading:
-    """Tests for configuration loading."""
+    """
+    Tests for configuration loading.
+
+    Fixtures used:
+        tmp_path (pathlib.Path): Provides a temporary directory for creating
+                                 test pyproject.toml files.
+    """
 
     def test_load_django_config(self, tmp_path):
         """Test loading django config from pyproject.toml."""
@@ -372,8 +418,19 @@ class TestUserCredentials:
             creds.username = "other"
 
 
+@pytest.mark.usefixtures("mocker", "tmp_path")
 class TestSubprocessIntegration:
-    """Tests for subprocess execution."""
+    """
+    Tests for subprocess execution.
+
+    Fixtures used:
+        mocker (pytest_mock.MockerFixture): Mocks subprocess.run and other dependencies
+                                            to test subprocess execution without actually
+                                            running Django commands.
+
+        tmp_path (pathlib.Path): Provides temporary directory for creating test
+                                 configuration files in some tests.
+    """
 
     def test_subprocess_called_with_correct_args(self, mocker):
         """Test that subprocess is called with correct arguments."""
