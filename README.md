@@ -249,6 +249,7 @@ EPICENV_VALIDATE=strict python app.py  # Always validate
 
 - [Schema Reference](docs/schema-reference.md) - Complete field types and options
 - [1Password Integration](docs/1password.md) - Setup and troubleshooting
+- [Field Mapping Guide](docs/field-mapping.md) - Transform and map secrets with jq
 - [Django Integration](docs/django.md) - Django-specific features and legacy commands
 
 ## Contributing
