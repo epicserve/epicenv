@@ -1,6 +1,40 @@
 # Schema Reference
 
-This document provides a complete reference for defining environment variable schemas in `pyproject.toml`.
+This document provides a complete reference for defining environment variable schemas.
+
+## Where to define your schema
+
+epicenv looks for the schema in this order:
+
+1. **`config_file`** — if `pyproject.toml` contains `[tool.epicenv] config_file = "path/to/file.toml"`, that file is used. The path is resolved relative to the directory containing `pyproject.toml`.
+2. **`.env.toml`** — if a `.env.toml` file sits next to `pyproject.toml`, it is auto-discovered.
+3. **`pyproject.toml`** — `[tool.epicenv.variables]` in `pyproject.toml` itself.
+
+If variables are defined in *both* `pyproject.toml` and an external file, epicenv errors out — pick one location.
+
+### External file format
+
+In a dedicated file, variables live under a top-level `[variables]` table. Both inline and TOML table forms work:
+
+```toml
+# .env.toml
+[variables]
+DEBUG = { type = "bool", default = false, initial = "on" }
+
+# The table form is handy for variables with many fields:
+[variables.SECRET_KEY]
+type = "str"
+required = true
+help_text = "Secret key for cryptographic signing"
+initial_func = "epicenv.initializers.url_safe_password"
+```
+
+Point at a custom path from `pyproject.toml`:
+
+```toml
+[tool.epicenv]
+config_file = "config/env-schema.toml"
+```
 
 ## Field Types
 

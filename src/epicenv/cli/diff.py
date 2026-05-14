@@ -5,7 +5,7 @@ from pathlib import Path
 
 import click
 
-from .._config import find_pyproject_toml, load_schema
+from .._config import find_pyproject_toml, get_schema_path, load_schema
 
 
 def diff_env_file(env_path: Path):
@@ -26,14 +26,12 @@ def diff_env_file(env_path: Path):
 
     # Load schema
     schema = load_schema(pyproject_path)
+    schema_path = get_schema_path(pyproject_path)
     if not schema:
-        click.echo(
-            click.style("Warning: ", fg="yellow", bold=True)
-            + "No [tool.epicenv.variables] section found in pyproject.toml"
-        )
+        click.echo(click.style("Warning: ", fg="yellow", bold=True) + f"No variables defined in {schema_path}")
         return
 
-    click.echo(f"Using schema from: {click.style(str(pyproject_path), fg='cyan')}\n")
+    click.echo(f"Using schema from: {click.style(str(schema_path), fg='cyan')}\n")
 
     # Make env_path absolute
     cwd = Path.cwd()

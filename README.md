@@ -5,7 +5,7 @@
 [![Tests](https://github.com/epicserve/epicenv/actions/workflows/test.yml/badge.svg)](https://github.com/epicserve/epicenv/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Schema-based environment variable management for Python projects. Define your environment variables in `pyproject.toml` with types, defaults, and help text. Use epicenv to create, validate, and manage `.env` files.
+Schema-based environment variable management for Python projects. Define your environment variables in `pyproject.toml` (or a dedicated `.env.toml`) with types, defaults, and help text. Use epicenv to create, validate, and manage `.env` files.
 
 ## Table of Contents
 
@@ -107,7 +107,32 @@ MY_VAR = {
 
 **Supported types:** `str`, `bool`, `int`, `float`, `list`, `dict`, `json`, `url`, `uuid`, `path`, `date`, `datetime`, `log_level`, and Django types (`dj_db_url`, `dj_email_url`, `dj_cache_url`).
 
-See [Schema Reference](docs/schema-reference.md) for complete field documentation.
+### Schema location
+
+For projects with many variables, keep `pyproject.toml` tidy by moving the schema into a dedicated `.env.toml` file next to `pyproject.toml`. It's auto-discovered — no `pyproject.toml` change needed:
+
+```toml
+# .env.toml
+[variables]
+DEBUG = { type = "bool", default = false, initial = "on" }
+
+# Table form is nice for variables with several fields:
+[variables.SECRET_KEY]
+type = "str"
+required = true
+help_text = "Secret key for cryptographic signing"
+initial_func = "epicenv.initializers.url_safe_password"
+```
+
+Or point at a custom path:
+
+```toml
+# pyproject.toml
+[tool.epicenv]
+config_file = "config/env-schema.toml"
+```
+
+See [Schema Reference](docs/schema-reference.md) for complete field documentation and discovery rules.
 
 ## Built-in Initializers
 

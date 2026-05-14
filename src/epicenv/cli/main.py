@@ -4,6 +4,14 @@ from pathlib import Path
 
 import click
 
+from .._exceptions import ConfigError
+
+
+def _handle_config_error(e: ConfigError) -> None:
+    """Surface ConfigError as a clean click message instead of a traceback."""
+    click.echo(click.style("Error: ", fg="red", bold=True) + str(e), err=True)
+    raise click.Abort() from e
+
 
 @click.group()
 @click.version_option(package_name="epicenv")
@@ -23,14 +31,18 @@ def cli():
 @click.option("--backup/--no-backup", default=True, help="Backup existing .env file (default: yes)")
 def create(path: str, overwrite: bool, backup: bool):
     """
-    Create a .env file from pyproject.toml schema.
+    Create a .env file from the project schema.
 
-    Reads the [tool.epicenv.variables] section from pyproject.toml
-    and generates an initial .env file with help text, types, and defaults.
+    Reads the schema from .env.toml, a file pointed to by
+    [tool.epicenv] config_file, or [tool.epicenv.variables] in
+    pyproject.toml and generates an initial .env file.
     """
     from .create import create_env_file
 
-    create_env_file(Path(path), overwrite, backup)
+    try:
+        create_env_file(Path(path), overwrite, backup)
+    except ConfigError as e:
+        _handle_config_error(e)
 
 
 @cli.command()
@@ -39,15 +51,17 @@ def diff(path: str):
     """
     Show differences between .env file and schema.
 
-    Compares your .env file with the schema defined in pyproject.toml
-    and reports:
+    Compares your .env file with the project schema and reports:
     - Missing required variables
     - Missing optional variables (with defaults)
     - Orphaned variables not in schema
     """
     from .diff import diff_env_file
 
-    diff_env_file(Path(path))
+    try:
+        diff_env_file(Path(path))
+    except ConfigError as e:
+        _handle_config_error(e)
 
 
 @cli.command()
@@ -56,12 +70,15 @@ def validate(strict: bool):
     """
     Validate current environment against schema.
 
-    Checks that all required variables from pyproject.toml schema
-    are set in the current environment.
+    Checks that all required variables from the project schema are set in the
+    current environment.
     """
     from .validate import validate_env
 
-    validate_env(strict)
+    try:
+        validate_env(strict)
+    except ConfigError as e:
+        _handle_config_error(e)
 
 
 if __name__ == "__main__":

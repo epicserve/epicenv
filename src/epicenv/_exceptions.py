@@ -9,6 +9,12 @@ class EpicenvError(Exception):
     pass
 
 
+class ConfigError(EpicenvError):
+    """Raised when the epicenv schema configuration is invalid or ambiguous."""
+
+    pass
+
+
 class UndefinedVariableError(EpicenvError, ValueError):
     """Raised when accessing an environment variable not defined in schema."""
 

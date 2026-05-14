@@ -5,7 +5,7 @@ from pathlib import Path
 
 import click
 
-from .._config import find_pyproject_toml
+from .._config import find_pyproject_toml, get_schema_path
 from .._env import get_dot_env_file_str
 
 
@@ -27,7 +27,8 @@ def create_env_file(env_path: Path, overwrite: bool, backup: bool):
         )
         raise click.Abort()
 
-    click.echo(f"Using schema from: {click.style(str(pyproject_path), fg='cyan')}")
+    schema_path = get_schema_path(pyproject_path)
+    click.echo(f"Using schema from: {click.style(str(schema_path), fg='cyan')}")
 
     # Make env_path absolute relative to current directory
     cwd = Path.cwd()

@@ -5,7 +5,7 @@ import sys
 
 import click
 
-from .._config import find_pyproject_toml, load_schema
+from .._config import find_pyproject_toml, get_schema_path, load_schema
 
 
 def validate_env(strict: bool):
@@ -28,14 +28,12 @@ def validate_env(strict: bool):
 
     # Load schema
     schema = load_schema(pyproject_path)
+    schema_path = get_schema_path(pyproject_path)
     if not schema:
-        click.echo(
-            click.style("Warning: ", fg="yellow", bold=True)
-            + "No [tool.epicenv.variables] section found in pyproject.toml"
-        )
+        click.echo(click.style("Warning: ", fg="yellow", bold=True) + f"No variables defined in {schema_path}")
         return
 
-    click.echo(f"Validating environment against: {click.style(str(pyproject_path), fg='cyan')}\n")
+    click.echo(f"Validating environment against: {click.style(str(schema_path), fg='cyan')}\n")
 
     # Check each required variable
     missing_required = []

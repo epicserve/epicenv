@@ -1,4 +1,4 @@
-set dotenv-load := true
+set dotenv-load
 
 @_default:
     just --list
@@ -17,13 +17,13 @@ format: format_just format_python
 
 @format_python:
     just _start_command "Formatting Python"
-    uv run ruff format
+    uvx ruff format
 
 @lint: lint_python
 
 @lint_python:
     just _start_command "Linting Python"
-    uv run ruff check
+    uvx ruff check
 
 @pre_commit: format lint test
 
