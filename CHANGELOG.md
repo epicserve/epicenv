@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.3.0] - 2026-05-14
+
+### Added
+- Schema can now live in a dedicated `.env.toml` file next to `pyproject.toml` (auto-discovered) or at a custom path via `[tool.epicenv] config_file = "..."` in `pyproject.toml`
+- `ConfigError` exception raised when schema is defined in both `pyproject.toml` and an external file, or when `config_file` points to a missing path
+- `get_schema_path()` helper in `epicenv._config` returns the resolved schema file location
+
+### Changed
+- CLI commands (`create`, `diff`, `validate`) now report the actual schema file path in use rather than always showing `pyproject.toml`
+
+
 ## [1.2.0] - 2026-01-25
 
 ### Added
