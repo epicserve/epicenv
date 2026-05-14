@@ -8,7 +8,7 @@ authors = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "environs>=11.0.0",
+    "environs>=14.0.0",
     "click>=8.0.0",
     "tomli>=2.0.0; python_version < '3.11'",
 ]
@@ -31,7 +31,7 @@ classifiers = [
 
 [project.optional-dependencies]
 django = [
-    "environs[django]>=11.0.0",
+    "environs[django]>=14.0.0",
 ]
 
 [project.scripts]
@@ -48,7 +48,7 @@ build-backend = "hatchling.build"
 [dependency-groups]
 dev = [
     "django>=5.1.2",
-    "environs[django]>=11.0.0",
+    "environs[django]>=14.0.0",
     "pytest-cov>=6.0.0",
     "pytest-django>=4.9.0",
     "pytest-mock>=3.14.0",

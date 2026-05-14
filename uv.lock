@@ -232,8 +232,8 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "click", specifier = ">=8.0.0" },
-    { name = "environs", specifier = ">=11.0.0" },
-    { name = "environs", extras = ["django"], marker = "extra == 'django'", specifier = ">=11.0.0" },
+    { name = "environs", specifier = ">=14.0.0" },
+    { name = "environs", extras = ["django"], marker = "extra == 'django'", specifier = ">=14.0.0" },
     { name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=2.0.0" },
 ]
 provides-extras = ["django"]
@@ -241,7 +241,7 @@ provides-extras = ["django"]
 [package.metadata.requires-dev]
 dev = [
     { name = "django", specifier = ">=5.1.2" },
-    { name = "environs", extras = ["django"], specifier = ">=11.0.0" },
+    { name = "environs", extras = ["django"], specifier = ">=14.0.0" },
     { name = "pytest", specifier = ">=8.3.3" },
     { name = "pytest-cov", specifier = ">=6.0.0" },
     { name = "pytest-django", specifier = ">=4.9.0" },
