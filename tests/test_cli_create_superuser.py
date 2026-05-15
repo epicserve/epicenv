@@ -8,19 +8,16 @@ from epicenv.cli.main import cli
 
 @pytest.fixture
 def patched_framework(mocker):
-    """Patch the framework-level Django functions so tests don't need a real DB."""
+    """Patch DjangoSuperuserIntegration so tests don't need a real DB."""
     integration = mocker.MagicMock()
     integration.is_available.return_value = (True, None)
+    integration.execute.return_value = "created"
     mocker.patch(
         "epicenv.cli.create_superuser.DjangoSuperuserIntegration",
         return_value=integration,
     )
     mocker.patch("epicenv.cli.create_superuser.setup_django")
-    user_exists = mocker.patch(
-        "epicenv.cli.create_superuser.user_exists", return_value=False
-    )
-    create = mocker.patch("epicenv.cli.create_superuser.create_superuser_record")
-    update = mocker.patch("epicenv.cli.create_superuser.update_superuser_record")
+
     # The CLI uses select.select() to peek at stdin; stub it to report "ready" only
     # when CliRunner's underlying BytesIO actually contains input. select() can't
     # operate on the in-memory streams CliRunner installs.
@@ -34,12 +31,7 @@ def patched_framework(mocker):
         return (ready, [], [])
 
     mocker.patch("select.select", side_effect=_select_stub)
-    return {
-        "integration": integration,
-        "user_exists": user_exists,
-        "create": create,
-        "update": update,
-    }
+    return integration
 
 
 class TestInputSourceDetection:
@@ -54,8 +46,12 @@ class TestInputSourceDetection:
             ],
         )
         assert result.exit_code == 0, result.output
-        patched_framework["create"].assert_called_once_with(
-            "admin", "admin@example.com", "secret", "default"
+        patched_framework.execute.assert_called_once_with(
+            username="admin",
+            email="admin@example.com",
+            password="secret",
+            database="default",
+            force=False,
         )
 
     def test_stdin_json(self, patched_framework):
@@ -65,9 +61,11 @@ class TestInputSourceDetection:
             input='{"username": "admin", "email": "admin@example.com", "password": "secret"}',
         )
         assert result.exit_code == 0, result.output
-        patched_framework["create"].assert_called_once_with(
-            "admin", "admin@example.com", "secret", "default"
-        )
+        patched_framework.execute.assert_called_once()
+        kwargs = patched_framework.execute.call_args.kwargs
+        assert kwargs["username"] == "admin"
+        assert kwargs["email"] == "admin@example.com"
+        assert kwargs["password"] == "secret"
 
     def test_env_vars(self, patched_framework, monkeypatch):
         monkeypatch.setenv("DJANGO_SUPERUSER_USERNAME", "admin")
@@ -76,9 +74,10 @@ class TestInputSourceDetection:
         # No stdin input → select stub reports not-ready → falls through to env vars
         result = CliRunner().invoke(cli, ["create-superuser"])
         assert result.exit_code == 0, result.output
-        patched_framework["create"].assert_called_once_with(
-            "admin", "admin@example.com", "secret", "default"
-        )
+        kwargs = patched_framework.execute.call_args.kwargs
+        assert kwargs["username"] == "admin"
+        assert kwargs["email"] == "admin@example.com"
+        assert kwargs["password"] == "secret"
 
     def test_no_input_shows_help(self, patched_framework, monkeypatch):
         for key in ("DJANGO_SUPERUSER_USERNAME", "DJANGO_SUPERUSER_EMAIL", "DJANGO_SUPERUSER_PASSWORD"):
@@ -119,10 +118,7 @@ class TestEnvVarValidation:
 
 class TestDjangoAvailability:
     def test_django_not_installed(self, patched_framework):
-        patched_framework["integration"].is_available.return_value = (
-            False,
-            "Django is not installed",
-        )
+        patched_framework.is_available.return_value = (False, "Django is not installed")
         result = CliRunner().invoke(
             cli,
             [
@@ -139,7 +135,7 @@ class TestDjangoAvailability:
 
 class TestIdempotency:
     def test_user_already_exists_returns_zero(self, patched_framework):
-        patched_framework["user_exists"].return_value = True
+        patched_framework.execute.return_value = "exists"
         result = CliRunner().invoke(
             cli,
             [
@@ -151,11 +147,9 @@ class TestIdempotency:
         )
         assert result.exit_code == 0, result.output
         assert "already exists" in result.output
-        patched_framework["create"].assert_not_called()
-        patched_framework["update"].assert_not_called()
 
     def test_force_updates_existing_user(self, patched_framework):
-        patched_framework["user_exists"].return_value = True
+        patched_framework.execute.return_value = "updated"
         result = CliRunner().invoke(
             cli,
             [
@@ -167,13 +161,11 @@ class TestIdempotency:
             ],
         )
         assert result.exit_code == 0, result.output
-        patched_framework["update"].assert_called_once_with(
-            "admin", "new@example.com", "newpass", "default"
-        )
-        patched_framework["create"].assert_not_called()
+        assert "updated successfully" in result.output
+        assert patched_framework.execute.call_args.kwargs["force"] is True
 
     def test_creates_new_user_when_missing(self, patched_framework):
-        patched_framework["user_exists"].return_value = False
+        patched_framework.execute.return_value = "created"
         result = CliRunner().invoke(
             cli,
             [
@@ -184,13 +176,12 @@ class TestIdempotency:
             ],
         )
         assert result.exit_code == 0, result.output
-        patched_framework["create"].assert_called_once()
-        patched_framework["update"].assert_not_called()
+        assert "created successfully" in result.output
 
 
 class TestDatabaseErrors:
-    def test_user_exists_lookup_fails(self, patched_framework):
-        patched_framework["user_exists"].side_effect = RuntimeError("table missing")
+    def test_execute_raises_database_error(self, patched_framework):
+        patched_framework.execute.side_effect = RuntimeError("table missing")
         result = CliRunner().invoke(
             cli,
             [
@@ -216,5 +207,4 @@ class TestDatabaseErrors:
             ],
         )
         assert result.exit_code == 0, result.output
-        patched_framework["user_exists"].assert_called_once_with("admin", "other")
-        patched_framework["create"].assert_called_once_with("admin", "a@b.c", "secret", "other")
+        assert patched_framework.execute.call_args.kwargs["database"] == "other"

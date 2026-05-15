@@ -1,5 +1,6 @@
 """1Password CLI secret provider implementation."""
 
+import json
 import subprocess
 
 from .base import SecretProvider
@@ -76,34 +77,67 @@ def fetch_field(reference: str, timeout: int = 10) -> tuple[str | None, str | No
 
 def fetch_fields(item_reference: str, fields: list[str], timeout: int = 10) -> tuple[dict[str, str] | None, str | None]:
     """
-    Fetch multiple fields from a 1Password item.
+    Fetch multiple fields from a 1Password item in a single call.
 
-    This function makes multiple calls to `op read` for each field.
-    Future optimization: Use `op item get` with single call.
+    Uses ``op item get --format json`` so the whole item is retrieved atomically —
+    one subprocess invocation per item regardless of how many fields are requested.
+    Fields are matched first by ``label``, then by ``id``.
 
     Args:
         item_reference: Base item reference (e.g., "op://vault/item")
-        fields: List of field names to retrieve
-        timeout: Timeout per field in seconds (default: 10)
+        fields: List of field labels (or ids) to retrieve
+        timeout: Timeout in seconds (default: 10)
 
     Returns:
         Tuple of (values_dict, error_message)
-        values_dict maps field names to their values
+        values_dict maps the requested names to their values.
     """
-    # Ensure item_reference doesn't end with a slash
     item_reference = item_reference.rstrip("/")
 
-    values = {}
+    if not fields:
+        return {}, None
+
+    try:
+        result = subprocess.run(  # noqa: S603
+            ["op", "item", "get", item_reference, "--format", "json"],  # noqa: S607
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+        if result.returncode != 0:
+            error = result.stderr.strip() or "Unknown error"
+            return None, f"Failed to read item: {error}"
+    except subprocess.TimeoutExpired:
+        return None, "Timeout reading from 1Password"
+    except Exception as e:
+        return None, f"Unexpected error: {e}"
+
+    try:
+        item = json.loads(result.stdout)
+    except json.JSONDecodeError as e:
+        return None, f"Invalid JSON from 1Password: {e}"
+
+    by_label: dict[str, str] = {}
+    by_id: dict[str, str] = {}
+    for f in item.get("fields", []):
+        value = f.get("value")
+        if value is None:
+            continue
+        label = f.get("label")
+        field_id = f.get("id")
+        if label:
+            by_label[label] = value
+        if field_id:
+            by_id[field_id] = value
+
+    values: dict[str, str] = {}
     for field in fields:
-        # Construct full reference for this field
-        field_reference = f"{item_reference}/{field}"
-
-        # Fetch the field
-        value, error = fetch_field(field_reference, timeout)
-        if error:
-            return None, f"Failed to fetch field '{field}': {error}"
-
-        values[field] = value
+        if field in by_label:
+            values[field] = by_label[field]
+        elif field in by_id:
+            values[field] = by_id[field]
+        else:
+            return None, f"Field '{field}' not found in item"
 
     return values, None
 

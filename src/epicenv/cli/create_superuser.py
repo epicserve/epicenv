@@ -7,13 +7,7 @@ import sys
 
 import click
 
-from ..frameworks.django import (
-    DjangoSuperuserIntegration,
-    create_superuser_record,
-    setup_django,
-    update_superuser_record,
-    user_exists,
-)
+from ..frameworks.django import DjangoSuperuserIntegration, setup_django
 
 
 def _stdin_has_data() -> bool:
@@ -148,31 +142,23 @@ def create_django_superuser(
         click.echo(click.style("Error: ", fg="red", bold=True) + f"Django setup failed: {e}", err=True)
         sys.exit(1)
 
-    # Check if user exists
+    # Create or update the superuser
     try:
-        exists = user_exists(username, database)
+        result = integration.execute(
+            username=username,
+            email=email,
+            password=password,
+            database=database,
+            force=force,
+        )
     except Exception as e:
         click.echo(click.style("Error: ", fg="red", bold=True) + f"Database error: {e}", err=True)
         sys.exit(1)
 
-    if exists:
-        if not force:
-            click.echo(click.style("✓ ", fg="green", bold=True) + f"Superuser '{username}' already exists")
-            click.echo("\nUse --force to update the existing user's password", err=True)
-            sys.exit(0)
-        else:
-            # Update existing user
-            try:
-                update_superuser_record(username, email, password, database)
-                click.echo(click.style("✓ ", fg="green", bold=True) + f"Superuser '{username}' updated successfully")
-            except Exception as e:
-                click.echo(click.style("Error: ", fg="red", bold=True) + f"Failed to update superuser: {e}", err=True)
-                sys.exit(1)
-    else:
-        # Create new user
-        try:
-            create_superuser_record(username, email, password, database)
-            click.echo(click.style("✓ ", fg="green", bold=True) + f"Superuser '{username}' created successfully")
-        except Exception as e:
-            click.echo(click.style("Error: ", fg="red", bold=True) + f"Failed to create superuser: {e}", err=True)
-            sys.exit(1)
+    if result == "exists":
+        click.echo(click.style("✓ ", fg="green", bold=True) + f"Superuser '{username}' already exists")
+        click.echo("\nUse --force to update the existing user's password", err=True)
+    elif result == "updated":
+        click.echo(click.style("✓ ", fg="green", bold=True) + f"Superuser '{username}' updated successfully")
+    elif result == "created":
+        click.echo(click.style("✓ ", fg="green", bold=True) + f"Superuser '{username}' created successfully")

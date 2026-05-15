@@ -1,15 +1,14 @@
 """
 1Password CLI integration initializer.
 
-This module provides backward compatibility for the onepassword() initializer function.
-The core 1Password functionality has been refactored into the secrets.onepassword module.
+The 1Password subprocess primitives live in ``epicenv.secrets.onepassword``; this
+module wraps them in the ``onepassword()`` initializer used from ``pyproject.toml``
+schemas (fetch-with-fallback + warning on failure).
 """
 
 import sys
 
-# Import from new secrets module
-from ..secrets.onepassword import check_available as _check_onepassword_available
-from ..secrets.onepassword import fetch_field as _fetch_from_onepassword
+from ..secrets.onepassword import check_available, fetch_field
 
 
 def _generate_fallback_placeholder(variable_name: str | None) -> str:
@@ -128,11 +127,11 @@ def onepassword(
         ```
     """
     # Step 1: Check if 1Password is available
-    is_available, error = _check_onepassword_available()
+    is_available, error = check_available()
 
     if is_available:
         # Step 2: Try to fetch from 1Password
-        value, fetch_error = _fetch_from_onepassword(reference)
+        value, fetch_error = fetch_field(reference)
         if value:
             return value
         # Fetch failed, fall through to fallback

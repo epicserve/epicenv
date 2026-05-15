@@ -87,7 +87,16 @@ epicenv create --no-backup        # Don't backup existing file
 epicenv diff                      # Compare .env with schema
 epicenv validate                  # Validate environment against schema
 epicenv validate --strict         # Exit with error if validation fails
+
+epicenv secrets get op://vault/item/field          # Fetch a single secret
+epicenv secrets get op://vault/item --fields a,b,c # Fetch multiple fields as JSON
+epicenv create-superuser                           # Create Django superuser (stdin/env/flags)
 ```
+
+> **Platform note:** `epicenv create-superuser` auto-detects piped JSON on stdin
+> using `select()`, which is a POSIX primitive. On Windows the detection
+> degrades to "no stdin," so Windows users should pass credentials via env vars
+> (`DJANGO_SUPERUSER_*`) or explicit flags rather than piping JSON.
 
 ## Schema Basics
 

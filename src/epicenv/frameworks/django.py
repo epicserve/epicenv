@@ -19,9 +19,35 @@ class DjangoSuperuserIntegration(FrameworkIntegration):
         except ImportError:
             return False, "Django is not installed"
 
-    def execute(self, **kwargs) -> bool:
-        """Create Django superuser. Implementation in standalone functions below."""
-        raise NotImplementedError("Use standalone functions for Django operations")
+    def execute(
+        self,
+        *,
+        username: str,
+        email: str,
+        password: str,
+        database: str = "default",
+        force: bool = False,
+    ) -> str:
+        """
+        Create or update a Django superuser idempotently.
+
+        Caller must have called ``setup_django()`` first.
+
+        Returns:
+            "created" if a new user was created,
+            "updated" if --force replaced an existing user's email/password,
+            "exists" if the user already existed and force was False (no-op).
+
+        Raises:
+            Exception: If a database operation fails.
+        """
+        if user_exists(username, database):
+            if not force:
+                return "exists"
+            update_superuser_record(username, email, password, database)
+            return "updated"
+        create_superuser_record(username, email, password, database)
+        return "created"
 
 
 def detect_settings_module() -> str | None:

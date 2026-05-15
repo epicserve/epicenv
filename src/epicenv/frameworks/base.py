@@ -18,16 +18,12 @@ class FrameworkIntegration(ABC):
         """
 
     @abstractmethod
-    def execute(self, **kwargs) -> bool:
+    def execute(self, **kwargs):
         """
         Execute the framework-specific integration operation.
 
-        Args:
-            **kwargs: Integration-specific keyword arguments
-
-        Returns:
-            True if successful, False otherwise.
+        Subclasses define their own keyword arguments and return value.
 
         Raises:
-            Exception: If the operation fails
+            Exception: If the operation fails.
         """

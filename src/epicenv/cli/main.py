@@ -137,7 +137,13 @@ def get(reference: str, fields: str | None, format: str, silent: bool):
 @cli.command("create-superuser")
 @click.option("--username", help="Superuser username")
 @click.option("--email", help="Superuser email")
-@click.option("--password", help="Superuser password")
+@click.option(
+    "--password",
+    help=(
+        "Superuser password (NOT recommended for production — "
+        "appears in shell history; prefer piped stdin or env vars)"
+    ),
+)
 @click.option("--settings", help="Django settings module (e.g., myapp.settings.local)")
 @click.option("--database", default="default", help="Database alias (default: default)")
 @click.option("--force", is_flag=True, help="Update existing user instead of skipping")
