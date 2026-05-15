@@ -10,3 +10,6 @@ wheels/
 .venv
 .env*
 .coverage
+
+# Local Django test project (used for manual testing only)
+test_project/uv.lock

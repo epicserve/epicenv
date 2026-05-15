@@ -26,6 +26,8 @@ def check_available() -> tuple[bool, str | None]:
         return False, "1Password CLI not installed"
     except subprocess.TimeoutExpired:
         return False, "1Password CLI not responding"
+    except OSError as e:
+        return False, f"Error invoking 1Password CLI: {e}"
 
     # Check 2: Is user signed in?
     try:
@@ -40,6 +42,8 @@ def check_available() -> tuple[bool, str | None]:
         return True, None
     except subprocess.TimeoutExpired:
         return False, "1Password CLI not responding"
+    except OSError as e:
+        return False, f"Error invoking 1Password CLI: {e}"
 
 
 def fetch_field(reference: str, timeout: int = 10) -> tuple[str | None, str | None]:

@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [Unreleased]
+
+### Added
+- `epicenv secrets get <reference>` command — retrieve secrets from 1Password (and future providers) with `--fields`, `--format json|env|plain`, and `--silent` flags
+- `epicenv create-superuser` command — idempotent Django superuser creation that auto-detects credentials from stdin (piped JSON), `DJANGO_SUPERUSER_*` environment variables, or explicit `--username/--email/--password` flags; supports `--force` to update an existing user
+- `epicenv.secrets` module with `SecretProvider` abstract base class and `OnePasswordProvider` implementation, enabling future providers (AWS Secrets Manager, Vault, etc.)
+- `epicenv.frameworks` module with `FrameworkIntegration` abstract base class for future framework integrations
+- Auto-detection of `DJANGO_SETTINGS_MODULE` from environment or `[tool.epicenv.django] settings_module` in `pyproject.toml`
+- [Field Mapping Guide](docs/field-mapping.md) — patterns for transforming secrets with `jq` between `epicenv secrets get` and consuming commands
+
+### Changed
+- 1Password CLI integration refactored into the new `epicenv.secrets.onepassword` module; the public `onepassword()` initializer in `epicenv.initializers` keeps the same signature and behavior
+
+
 ## [1.5.0] - 2026-05-22
 
 ### Added

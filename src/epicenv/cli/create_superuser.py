@@ -2,17 +2,34 @@
 
 import json
 import os
+import select
 import sys
 
 import click
 
 from ..frameworks.django import (
     DjangoSuperuserIntegration,
-    create_superuser,
+    create_superuser_record,
     setup_django,
-    update_superuser,
+    update_superuser_record,
     user_exists,
 )
+
+
+def _stdin_has_data() -> bool:
+    """
+    Return True when stdin is non-interactive AND has buffered data ready to read.
+
+    Returns False for interactive terminals or when select() can't inspect the stream
+    (e.g. on Windows or when stdin has been replaced by a non-fd stream); the caller
+    then continues to other input sources rather than blocking on a `json.load`.
+    """
+    if sys.stdin.isatty():
+        return False
+    try:
+        return bool(select.select([sys.stdin], [], [], 0.0)[0])
+    except (OSError, ValueError):
+        return False
 
 
 def create_django_superuser(
@@ -40,77 +57,57 @@ def create_django_superuser(
         database: Database alias
         force: Whether to update existing user
     """
-    # Auto-detect input source (priority order)
-
+    # Detect input source in priority order:
     # 1. Explicit flags
-    if username and email and password:
-        # All explicit flags provided, use them
-        pass
-
-    # 2. Stdin (check if not a TTY and has data)
-    elif not sys.stdin.isatty():
-        # Check if there's actually data on stdin
-        import select
-
-        # Use select to check if stdin has data (non-blocking)
-        # This prevents hanging when stdin is not a TTY but has no data
-        if select.select([sys.stdin], [], [], 0.0)[0]:
-            try:
-                data = json.load(sys.stdin)
-                username = data.get("username")
-                email = data.get("email")
-                password = data.get("password")
-
-                if not all([username, email, password]):
-                    missing = []
-                    if not username:
-                        missing.append("username")
-                    if not email:
-                        missing.append("email")
-                    if not password:
-                        missing.append("password")
-
-                    click.echo(
-                        click.style("Error: ", fg="red", bold=True) + "Missing required fields in JSON", err=True
-                    )
-                    click.echo(f"Required: {', '.join(missing)}", err=True)
-                    click.echo("\nExample JSON format:", err=True)
-                    click.echo('  {"username": "admin", "email": "admin@example.com", "password": "secret"}', err=True)
-                    sys.exit(1)
-
-            except json.JSONDecodeError as e:
-                click.echo(click.style("Error: ", fg="red", bold=True) + f"Invalid JSON from stdin: {e}", err=True)
-                click.echo("\nExpected JSON format:", err=True)
-                click.echo('  {"username": "admin", "email": "admin@example.com", "password": "secret"}', err=True)
-                sys.exit(1)
-            except KeyError as e:
-                click.echo(click.style("Error: ", fg="red", bold=True) + f"Missing key in JSON: {e}", err=True)
-                sys.exit(1)
-        else:
-            # stdin is not a TTY but has no data - fall through to env vars
-            pass
-
+    # 2. Piped JSON on stdin
     # 3. Environment variables
-    elif os.getenv("DJANGO_SUPERUSER_USERNAME"):
+    # 4. Error
+    have_credentials = bool(username and email and password)
+
+    if not have_credentials and _stdin_has_data():
+        try:
+            data = json.load(sys.stdin)
+            username = data.get("username")
+            email = data.get("email")
+            password = data.get("password")
+        except json.JSONDecodeError as e:
+            click.echo(click.style("Error: ", fg="red", bold=True) + f"Invalid JSON from stdin: {e}", err=True)
+            click.echo("\nExpected JSON format:", err=True)
+            click.echo('  {"username": "admin", "email": "admin@example.com", "password": "secret"}', err=True)
+            sys.exit(1)
+
+        if not all([username, email, password]):
+            missing = [
+                name for name, value in (("username", username), ("email", email), ("password", password))
+                if not value
+            ]
+            click.echo(click.style("Error: ", fg="red", bold=True) + "Missing required fields in JSON", err=True)
+            click.echo(f"Required: {', '.join(missing)}", err=True)
+            click.echo("\nExample JSON format:", err=True)
+            click.echo('  {"username": "admin", "email": "admin@example.com", "password": "secret"}', err=True)
+            sys.exit(1)
+        have_credentials = True
+
+    if not have_credentials and os.getenv("DJANGO_SUPERUSER_USERNAME"):
         username = os.getenv("DJANGO_SUPERUSER_USERNAME")
         email = os.getenv("DJANGO_SUPERUSER_EMAIL")
         password = os.getenv("DJANGO_SUPERUSER_PASSWORD")
 
         if not all([username, email, password]):
-            missing = []
-            if not username:
-                missing.append("DJANGO_SUPERUSER_USERNAME")
-            if not email:
-                missing.append("DJANGO_SUPERUSER_EMAIL")
-            if not password:
-                missing.append("DJANGO_SUPERUSER_PASSWORD")
-
+            missing = [
+                name for name, value in (
+                    ("DJANGO_SUPERUSER_USERNAME", username),
+                    ("DJANGO_SUPERUSER_EMAIL", email),
+                    ("DJANGO_SUPERUSER_PASSWORD", password),
+                )
+                if not value
+            ]
             click.echo(click.style("Error: ", fg="red", bold=True) + "Missing environment variables", err=True)
             click.echo(f"Required: {', '.join(missing)}", err=True)
             sys.exit(1)
+        have_credentials = True
 
-    # 4. No valid input
-    else:
+    if not have_credentials:
         click.echo(click.style("Error: ", fg="red", bold=True) + "No credentials provided", err=True)
         click.echo("\nProvide credentials via one of these methods:", err=True)
         click.echo("  1. Explicit flags:", err=True)
@@ -166,7 +163,7 @@ def create_django_superuser(
         else:
             # Update existing user
             try:
-                update_superuser(username, email, password, database)
+                update_superuser_record(username, email, password, database)
                 click.echo(click.style("✓ ", fg="green", bold=True) + f"Superuser '{username}' updated successfully")
             except Exception as e:
                 click.echo(click.style("Error: ", fg="red", bold=True) + f"Failed to update superuser: {e}", err=True)
@@ -174,7 +171,7 @@ def create_django_superuser(
     else:
         # Create new user
         try:
-            create_superuser(username, email, password, database)
+            create_superuser_record(username, email, password, database)
             click.echo(click.style("✓ ", fg="green", bold=True) + f"Superuser '{username}' created successfully")
         except Exception as e:
             click.echo(click.style("Error: ", fg="red", bold=True) + f"Failed to create superuser: {e}", err=True)

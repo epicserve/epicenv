@@ -111,7 +111,7 @@ def user_exists(username: str, database: str = "default") -> bool:
     return User.objects.using(database).filter(username=username).exists()
 
 
-def create_superuser(username: str, email: str, password: str, database: str = "default") -> bool:
+def create_superuser_record(username: str, email: str, password: str, database: str = "default") -> bool:
     """
     Create a Django superuser.
 
@@ -134,7 +134,7 @@ def create_superuser(username: str, email: str, password: str, database: str = "
     return True
 
 
-def update_superuser(username: str, email: str, password: str, database: str = "default") -> bool:
+def update_superuser_record(username: str, email: str, password: str, database: str = "default") -> bool:
     """
     Update an existing superuser's password and email.
 
