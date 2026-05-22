@@ -5,7 +5,7 @@
 [![Tests](https://github.com/epicserve/epicenv/actions/workflows/test.yml/badge.svg)](https://github.com/epicserve/epicenv/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Schema-based environment variable management for Python projects. Define your environment variables in `pyproject.toml` (or a dedicated `.env.toml`) with types, defaults, and help text. Use epicenv to create, validate, and manage `.env` files.
+Stop maintaining `.env.example` files that drift out of sync with reality. epicenv is a schema-based environment variable manager for Python: declare your variables once in `pyproject.toml` (or a dedicated `.env.toml`) with types, defaults, initializers, and help text. Generate fresh `.env` files for new contributors with one command, and catch missing or malformed values before they hit production.
 
 ## Table of Contents
 
