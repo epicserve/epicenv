@@ -2,7 +2,6 @@
 
 import json
 import os
-import select
 import sys
 
 import click
@@ -10,20 +9,23 @@ import click
 from ..frameworks.django import DjangoSuperuserIntegration, setup_django
 
 
-def _stdin_has_data() -> bool:
+def _read_stdin_if_piped() -> str | None:
     """
-    Return True when stdin is non-interactive AND has buffered data ready to read.
+    Return the full contents of stdin when it is piped, else None.
 
-    Returns False for interactive terminals or when select() can't inspect the stream
-    (e.g. on Windows or when stdin has been replaced by a non-fd stream); the caller
-    then continues to other input sources rather than blocking on a `json.load`.
+    Blocks until the upstream producer closes the pipe (EOF). Bash forks both
+    sides of a pipeline simultaneously, so a zero-timeout readiness check would
+    miss any producer with non-trivial startup latency (e.g. `op item get ...`).
+
+    Returns None for interactive terminals — reading would hang waiting on the
+    user — so the caller can fall through to env vars / explicit flags.
     """
     if sys.stdin.isatty():
-        return False
+        return None
     try:
-        return bool(select.select([sys.stdin], [], [], 0.0)[0])
+        return sys.stdin.read()
     except (OSError, ValueError):
-        return False
+        return None
 
 
 def create_django_superuser(
@@ -58,9 +60,10 @@ def create_django_superuser(
     # 4. Error
     have_credentials = bool(username and email and password)
 
-    if not have_credentials and _stdin_has_data():
+    stdin_data = None if have_credentials else _read_stdin_if_piped()
+    if stdin_data is not None and stdin_data.strip():
         try:
-            data = json.load(sys.stdin)
+            data = json.loads(stdin_data)
             username = data.get("username")
             email = data.get("email")
             password = data.get("password")

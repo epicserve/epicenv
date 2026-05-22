@@ -6,7 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [Unreleased]
+## [1.6.1] - 2026-05-22
+
+### Fixed
+- `epicenv create-superuser` now reads piped stdin reliably regardless of upstream producer timing. The previous zero-timeout `select.select()` check raced against the producer half of a bash pipeline and silently dropped any input that took more than a few microseconds to arrive, breaking realistic invocations like `op item get ... | epicenv create-superuser` and `vault kv get ... | epicenv create-superuser`. The CLI now blocks on a full stdin read (gated by `isatty()` so interactive use still works) until the producer closes the pipe.
 
 
 ## [1.6.0] - 2026-05-22

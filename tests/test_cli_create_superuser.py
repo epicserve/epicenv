@@ -1,5 +1,9 @@
 """Tests for the `epicenv create-superuser` CLI command."""
 
+import subprocess
+import sys
+import textwrap
+
 import pytest
 from click.testing import CliRunner
 
@@ -17,20 +21,6 @@ def patched_framework(mocker):
         return_value=integration,
     )
     mocker.patch("epicenv.cli.create_superuser.setup_django")
-
-    # The CLI uses select.select() to peek at stdin; stub it to report "ready" only
-    # when CliRunner's underlying BytesIO actually contains input. select() can't
-    # operate on the in-memory streams CliRunner installs.
-    def _select_stub(rlist, _w, _x, _t):
-        ready = []
-        for stream in rlist:
-            buf = getattr(stream, "buffer", stream)
-            data = getattr(buf, "getvalue", lambda: b"")()
-            if data:
-                ready.append(stream)
-        return (ready, [], [])
-
-    mocker.patch("select.select", side_effect=_select_stub)
     return integration
 
 
@@ -71,7 +61,7 @@ class TestInputSourceDetection:
         monkeypatch.setenv("DJANGO_SUPERUSER_USERNAME", "admin")
         monkeypatch.setenv("DJANGO_SUPERUSER_EMAIL", "admin@example.com")
         monkeypatch.setenv("DJANGO_SUPERUSER_PASSWORD", "secret")
-        # No stdin input → select stub reports not-ready → falls through to env vars
+        # No stdin input → blocking read returns empty → falls through to env vars
         result = CliRunner().invoke(cli, ["create-superuser"])
         assert result.exit_code == 0, result.output
         kwargs = patched_framework.execute.call_args.kwargs
@@ -208,3 +198,65 @@ class TestDatabaseErrors:
         )
         assert result.exit_code == 0, result.output
         assert patched_framework.execute.call_args.kwargs["database"] == "other"
+
+
+class TestStdinTiming:
+    """Regression tests for the bash-pipeline timing bug.
+
+    Earlier versions used `select.select([sys.stdin], [], [], 0.0)` to peek at
+    stdin. Bash forks both sides of a pipeline simultaneously, so any producer
+    with non-trivial startup latency (e.g. `op item get ...`) reliably lost the
+    race and epicenv would error with "No credentials provided".
+
+    These tests use real subprocesses and OS pipes — CliRunner's in-memory
+    streams don't exhibit the race, so they can't cover this regression.
+    """
+
+    @staticmethod
+    def _consumer_script() -> str:
+        # Mocks Django so we don't need a real DB; the point of the test is the
+        # stdin read, not the framework call.
+        return textwrap.dedent(
+            """
+            import sys
+            from unittest.mock import MagicMock, patch
+
+            integration = MagicMock()
+            integration.is_available.return_value = (True, None)
+            integration.execute.return_value = "created"
+            with patch(
+                "epicenv.cli.create_superuser.DjangoSuperuserIntegration",
+                return_value=integration,
+            ), patch("epicenv.cli.create_superuser.setup_django"):
+                from epicenv.cli.main import cli
+                cli.main(["create-superuser"], standalone_mode=False)
+            """
+        )
+
+    def test_slow_producer_is_not_missed(self):
+        """A producer that delays ~300ms before emitting JSON must still be read."""
+        payload = '{"username":"slowboy","email":"a@b.com","password":"x"}'
+        producer = subprocess.Popen(
+            [
+                sys.executable,
+                "-c",
+                f"import time; time.sleep(0.3); print({payload!r})",
+            ],
+            stdout=subprocess.PIPE,
+        )
+        consumer = subprocess.Popen(
+            [sys.executable, "-c", self._consumer_script()],
+            stdin=producer.stdout,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        # Per the subprocess docs: close our copy so producer gets SIGPIPE if
+        # the consumer dies early.
+        producer.stdout.close()
+        out, err = consumer.communicate(timeout=10)
+        producer.wait(timeout=10)
+
+        assert consumer.returncode == 0, (
+            f"consumer exited {consumer.returncode}\nstdout: {out!r}\nstderr: {err!r}"
+        )
+        assert b"Superuser 'slowboy' created successfully" in out, (out, err)
