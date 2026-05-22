@@ -100,11 +100,11 @@ class TestOnePasswordIntegration:
     def test_get_callable_with_onepassword_success(self, mocker):
         """Test onepassword via get_callable when 1Password is available."""
         mocker.patch(
-            "epicenv.initializers._onepassword._check_onepassword_available",
+            "epicenv.initializers._onepassword.check_available",
             return_value=(True, None),
         )
         mocker.patch(
-            "epicenv.initializers._onepassword._fetch_from_onepassword",
+            "epicenv.initializers._onepassword.fetch_field",
             return_value=("secret123", None),
         )
 
@@ -120,7 +120,7 @@ class TestOnePasswordIntegration:
     def test_get_callable_with_onepassword_fallback(self, mocker):
         """Test onepassword via get_callable uses fallback when unavailable."""
         mocker.patch(
-            "epicenv.initializers._onepassword._check_onepassword_available",
+            "epicenv.initializers._onepassword.check_available",
             return_value=(False, "1Password CLI not installed"),
         )
 
@@ -136,7 +136,7 @@ class TestOnePasswordIntegration:
     def test_get_callable_with_onepassword_custom_fallback(self, mocker):
         """Test onepassword via get_callable with custom fallback."""
         mocker.patch(
-            "epicenv.initializers._onepassword._check_onepassword_available",
+            "epicenv.initializers._onepassword.check_available",
             return_value=(False, "1Password CLI not installed"),
         )
 
@@ -166,7 +166,7 @@ args = ["op://vault/item/field"]
 
         # Mock 1Password to return a test value
         mocker.patch(
-            "epicenv.initializers._onepassword._check_onepassword_available",
+            "epicenv.initializers._onepassword.check_available",
             return_value=(True, None),
         )
 
@@ -175,7 +175,7 @@ args = ["op://vault/item/field"]
             return ("test_value", None)
 
         mocker.patch(
-            "epicenv.initializers._onepassword._fetch_from_onepassword",
+            "epicenv.initializers._onepassword.fetch_field",
             side_effect=mock_fetch,
         )
 
@@ -307,7 +307,7 @@ fallback = "dev_password"
 
         # Mock 1Password as unavailable
         mocker.patch(
-            "epicenv.initializers._onepassword._check_onepassword_available",
+            "epicenv.initializers._onepassword.check_available",
             return_value=(False, "Not signed in to 1Password CLI"),
         )
 

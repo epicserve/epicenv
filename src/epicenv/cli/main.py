@@ -87,5 +87,106 @@ def validate(strict: bool):
         _handle_config_error(e)
 
 
+@cli.group()
+def secrets():
+    """
+    Manage secrets from 1Password and other providers.
+
+    Retrieve secrets at runtime for use in automation and deployment workflows.
+    """
+    pass
+
+
+@secrets.command()
+@click.argument("reference")
+@click.option("--fields", help="Comma-separated list of fields to retrieve")
+@click.option(
+    "--format",
+    type=click.Choice(["json", "env", "plain"]),
+    default="json",
+    help="Output format (default: json)",
+)
+@click.option("--silent", is_flag=True, help="Suppress warnings")
+def get(reference: str, fields: str | None, format: str, silent: bool):
+    r"""
+    Retrieve secrets from 1Password.
+
+    REFERENCE is the 1Password secret reference:
+    - Full path: op://vault/item/field
+    - Item with fields: op://vault/item (use with --fields)
+
+    Examples:
+      # Get single field (plain text output)
+      epicenv secrets get op://Production/Database/password
+
+      # Get multiple fields as JSON
+      epicenv secrets get op://Production/Admin --fields username,email,password
+
+      # Get fields as environment variables
+      epicenv secrets get op://Production/Admin --fields username,email --format env
+
+      # Pipe to create-superuser
+      epicenv secrets get op://vault/admin --fields username,email,password | \
+        epicenv create-superuser
+    """
+    from .secrets import get_secrets
+
+    get_secrets(reference, fields, format, silent)
+
+
+@cli.command("create-superuser")
+@click.option("--username", help="Superuser username")
+@click.option("--email", help="Superuser email")
+@click.option(
+    "--password",
+    help=(
+        "Superuser password (NOT recommended for production — "
+        "appears in shell history; prefer piped stdin or env vars)"
+    ),
+)
+@click.option("--settings", help="Django settings module (e.g., myapp.settings.local)")
+@click.option("--database", default="default", help="Database alias (default: default)")
+@click.option("--force", is_flag=True, help="Update existing user instead of skipping")
+def create_superuser(
+    username: str | None,
+    email: str | None,
+    password: str | None,
+    settings: str | None,
+    database: str,
+    force: bool,
+):
+    r"""
+    Create Django superuser idempotently.
+
+    Automatically detects credentials from multiple sources (in priority order):
+    1. Explicit flags (--username, --email, --password)
+    2. Stdin (piped JSON data)
+    3. Environment variables (DJANGO_SUPERUSER_*)
+
+    Examples:
+      # From 1Password (recommended - most secure)
+      epicenv secrets get op://vault/admin --fields username,email,password | \
+        epicenv create-superuser
+
+      # From environment variables (auto-detected)
+      export DJANGO_SUPERUSER_USERNAME=admin
+      export DJANGO_SUPERUSER_EMAIL=admin@example.com
+      export DJANGO_SUPERUSER_PASSWORD=secret
+      epicenv create-superuser
+
+      # From explicit flags (for testing/automation)
+      epicenv create-superuser --username admin --email admin@example.com --password secret
+
+      # With custom settings module
+      epicenv create-superuser --settings myapp.settings.production
+
+      # Update existing user password
+      epicenv create-superuser --username admin --password newpass --force
+    """
+    from .create_superuser import create_django_superuser
+
+    create_django_superuser(username, email, password, settings, database, force)
+
+
 if __name__ == "__main__":
     cli()
