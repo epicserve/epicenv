@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.5.0] - 2026-05-22
+
+### Added
+- `--min` flag for `epicenv create` that generates a `.env` with only required variables (those without defaults) and no per-variable help text. The header still explains what was generated, how to run `epicenv create` for the full version, and points at the schema file (`.env.toml` or `pyproject.toml`) where variable documentation lives.
+
+
 ## [1.4.0]
 
 ### Changed
