@@ -75,8 +75,7 @@ def create_django_superuser(
 
         if not all([username, email, password]):
             missing = [
-                name for name, value in (("username", username), ("email", email), ("password", password))
-                if not value
+                name for name, value in (("username", username), ("email", email), ("password", password)) if not value
             ]
             click.echo(click.style("Error: ", fg="red", bold=True) + "Missing required fields in JSON", err=True)
             click.echo(f"Required: {', '.join(missing)}", err=True)
@@ -92,7 +91,8 @@ def create_django_superuser(
 
         if not all([username, email, password]):
             missing = [
-                name for name, value in (
+                name
+                for name, value in (
                     ("DJANGO_SUPERUSER_USERNAME", username),
                     ("DJANGO_SUPERUSER_EMAIL", email),
                     ("DJANGO_SUPERUSER_PASSWORD", password),

@@ -30,9 +30,12 @@ class TestInputSourceDetection:
             cli,
             [
                 "create-superuser",
-                "--username", "admin",
-                "--email", "admin@example.com",
-                "--password", "secret",
+                "--username",
+                "admin",
+                "--email",
+                "admin@example.com",
+                "--password",
+                "secret",
             ],
         )
         assert result.exit_code == 0, result.output
@@ -79,16 +82,12 @@ class TestInputSourceDetection:
 
 class TestStdinValidation:
     def test_invalid_json(self, patched_framework):
-        result = CliRunner().invoke(
-            cli, ["create-superuser"], input="this is not json"
-        )
+        result = CliRunner().invoke(cli, ["create-superuser"], input="this is not json")
         assert result.exit_code == 1
         assert "Invalid JSON from stdin" in result.output
 
     def test_missing_fields_in_json(self, patched_framework):
-        result = CliRunner().invoke(
-            cli, ["create-superuser"], input='{"username": "admin"}'
-        )
+        result = CliRunner().invoke(cli, ["create-superuser"], input='{"username": "admin"}')
         assert result.exit_code == 1
         assert "Missing required fields" in result.output
         assert "email" in result.output
@@ -113,9 +112,12 @@ class TestDjangoAvailability:
             cli,
             [
                 "create-superuser",
-                "--username", "admin",
-                "--email", "a@b.c",
-                "--password", "secret",
+                "--username",
+                "admin",
+                "--email",
+                "a@b.c",
+                "--password",
+                "secret",
             ],
         )
         assert result.exit_code == 1
@@ -130,9 +132,12 @@ class TestIdempotency:
             cli,
             [
                 "create-superuser",
-                "--username", "admin",
-                "--email", "a@b.c",
-                "--password", "secret",
+                "--username",
+                "admin",
+                "--email",
+                "a@b.c",
+                "--password",
+                "secret",
             ],
         )
         assert result.exit_code == 0, result.output
@@ -144,9 +149,12 @@ class TestIdempotency:
             cli,
             [
                 "create-superuser",
-                "--username", "admin",
-                "--email", "new@example.com",
-                "--password", "newpass",
+                "--username",
+                "admin",
+                "--email",
+                "new@example.com",
+                "--password",
+                "newpass",
                 "--force",
             ],
         )
@@ -160,9 +168,12 @@ class TestIdempotency:
             cli,
             [
                 "create-superuser",
-                "--username", "admin",
-                "--email", "a@b.c",
-                "--password", "secret",
+                "--username",
+                "admin",
+                "--email",
+                "a@b.c",
+                "--password",
+                "secret",
             ],
         )
         assert result.exit_code == 0, result.output
@@ -176,9 +187,12 @@ class TestDatabaseErrors:
             cli,
             [
                 "create-superuser",
-                "--username", "admin",
-                "--email", "a@b.c",
-                "--password", "secret",
+                "--username",
+                "admin",
+                "--email",
+                "a@b.c",
+                "--password",
+                "secret",
             ],
         )
         assert result.exit_code == 1
@@ -190,10 +204,14 @@ class TestDatabaseErrors:
             cli,
             [
                 "create-superuser",
-                "--username", "admin",
-                "--email", "a@b.c",
-                "--password", "secret",
-                "--database", "other",
+                "--username",
+                "admin",
+                "--email",
+                "a@b.c",
+                "--password",
+                "secret",
+                "--database",
+                "other",
             ],
         )
         assert result.exit_code == 0, result.output
@@ -201,7 +219,8 @@ class TestDatabaseErrors:
 
 
 class TestStdinTiming:
-    """Regression tests for the bash-pipeline timing bug.
+    """
+    Regression tests for the bash-pipeline timing bug.
 
     Earlier versions used `select.select([sys.stdin], [], [], 0.0)` to peek at
     stdin. Bash forks both sides of a pipeline simultaneously, so any producer
@@ -236,7 +255,7 @@ class TestStdinTiming:
     def test_slow_producer_is_not_missed(self):
         """A producer that delays ~300ms before emitting JSON must still be read."""
         payload = '{"username":"slowboy","email":"a@b.com","password":"x"}'
-        producer = subprocess.Popen(
+        producer = subprocess.Popen(  # noqa: S603
             [
                 sys.executable,
                 "-c",
@@ -244,7 +263,7 @@ class TestStdinTiming:
             ],
             stdout=subprocess.PIPE,
         )
-        consumer = subprocess.Popen(
+        consumer = subprocess.Popen(  # noqa: S603
             [sys.executable, "-c", self._consumer_script()],
             stdin=producer.stdout,
             stdout=subprocess.PIPE,
@@ -256,7 +275,5 @@ class TestStdinTiming:
         out, err = consumer.communicate(timeout=10)
         producer.wait(timeout=10)
 
-        assert consumer.returncode == 0, (
-            f"consumer exited {consumer.returncode}\nstdout: {out!r}\nstderr: {err!r}"
-        )
+        assert consumer.returncode == 0, f"consumer exited {consumer.returncode}\nstdout: {out!r}\nstderr: {err!r}"
         assert b"Superuser 'slowboy' created successfully" in out, (out, err)

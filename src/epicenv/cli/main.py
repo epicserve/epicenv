@@ -140,8 +140,7 @@ def get(reference: str, fields: str | None, format: str, silent: bool):
 @click.option(
     "--password",
     help=(
-        "Superuser password (NOT recommended for production — "
-        "appears in shell history; prefer piped stdin or env vars)"
+        "Superuser password (NOT recommended for production — appears in shell history; prefer piped stdin or env vars)"
     ),
 )
 @click.option("--settings", help="Django settings module (e.g., myapp.settings.local)")

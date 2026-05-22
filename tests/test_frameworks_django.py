@@ -71,9 +71,7 @@ class TestExecute:
 
     def test_passes_database_alias_through(self, integration):
         integration._user_exists.return_value = False
-        integration.execute(
-            username="admin", email="a@b.c", password="secret", database="replica", force=False
-        )
+        integration.execute(username="admin", email="a@b.c", password="secret", database="replica", force=False)
         integration._user_exists.assert_called_once_with("admin", "replica")
         integration._create.assert_called_once_with("admin", "a@b.c", "secret", "replica")
 
@@ -81,6 +79,4 @@ class TestExecute:
         integration._user_exists.return_value = False
         integration._create.side_effect = RuntimeError("constraint violation")
         with pytest.raises(RuntimeError, match="constraint violation"):
-            integration.execute(
-                username="admin", email="a@b.c", password="secret", database="default", force=False
-            )
+            integration.execute(username="admin", email="a@b.c", password="secret", database="default", force=False)

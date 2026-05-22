@@ -244,9 +244,7 @@ initial = "on"
         """Minimal mode header references .env.toml when the schema lives there."""
         pyproject_file = tmp_path / "pyproject.toml"
         pyproject_file.write_text('[project]\nname = "demo"\nversion = "0.0.0"\n')
-        (tmp_path / ".env.toml").write_text(
-            '[variables]\nMIN_API_KEY = { type = "str", required = true }\n'
-        )
+        (tmp_path / ".env.toml").write_text('[variables]\nMIN_API_KEY = { type = "str", required = true }\n')
 
         mocker.patch("epicenv._env.find_pyproject_toml", return_value=pyproject_file)
 

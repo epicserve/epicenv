@@ -145,25 +145,30 @@ class TestFetchField:
 def _op_item_stdout(fields_list):
     """Build the JSON shape that `op item get --format json` returns."""
     import json as _json
+
     return _json.dumps({"id": "abc", "title": "Item", "fields": fields_list})
 
 
 class TestFetchFields:
     def test_single_field(self, mocker):
-        stdout = _op_item_stdout([
-            {"id": "password", "label": "password", "value": "value1"},
-        ])
+        stdout = _op_item_stdout(
+            [
+                {"id": "password", "label": "password", "value": "value1"},
+            ]
+        )
         mocker.patch("subprocess.run", return_value=Mock(returncode=0, stdout=stdout, stderr=""))
         values, error = fetch_fields("op://vault/item", ["password"])
         assert error is None
         assert values == {"password": "value1"}
 
     def test_multiple_fields_single_call(self, mocker):
-        stdout = _op_item_stdout([
-            {"id": "username", "label": "username", "value": "admin"},
-            {"id": "email", "label": "email", "value": "admin@example.com"},
-            {"id": "password", "label": "password", "value": "secret"},
-        ])
+        stdout = _op_item_stdout(
+            [
+                {"id": "username", "label": "username", "value": "admin"},
+                {"id": "email", "label": "email", "value": "admin@example.com"},
+                {"id": "password", "label": "password", "value": "secret"},
+            ]
+        )
         run = mocker.patch("subprocess.run", return_value=Mock(returncode=0, stdout=stdout, stderr=""))
         values, error = fetch_fields("op://vault/item", ["username", "email", "password"])
         assert error is None
@@ -192,27 +197,33 @@ class TestFetchFields:
         run.assert_not_called()
 
     def test_field_matched_by_label(self, mocker):
-        stdout = _op_item_stdout([
-            {"id": "abc-123-uuid", "label": "API Key", "value": "k"},
-        ])
+        stdout = _op_item_stdout(
+            [
+                {"id": "abc-123-uuid", "label": "API Key", "value": "k"},
+            ]
+        )
         mocker.patch("subprocess.run", return_value=Mock(returncode=0, stdout=stdout, stderr=""))
         values, error = fetch_fields("op://vault/item", ["API Key"])
         assert error is None
         assert values == {"API Key": "k"}
 
     def test_field_matched_by_id_fallback(self, mocker):
-        stdout = _op_item_stdout([
-            {"id": "username", "label": "User Name", "value": "admin"},
-        ])
+        stdout = _op_item_stdout(
+            [
+                {"id": "username", "label": "User Name", "value": "admin"},
+            ]
+        )
         mocker.patch("subprocess.run", return_value=Mock(returncode=0, stdout=stdout, stderr=""))
         values, error = fetch_fields("op://vault/item", ["username"])
         assert error is None
         assert values == {"username": "admin"}
 
     def test_missing_field_returns_error(self, mocker):
-        stdout = _op_item_stdout([
-            {"id": "username", "label": "username", "value": "admin"},
-        ])
+        stdout = _op_item_stdout(
+            [
+                {"id": "username", "label": "username", "value": "admin"},
+            ]
+        )
         mocker.patch("subprocess.run", return_value=Mock(returncode=0, stdout=stdout, stderr=""))
         values, error = fetch_fields("op://vault/item", ["username", "missing"])
         assert values is None
@@ -259,10 +270,12 @@ class TestFetchFields:
 
     def test_skips_fields_with_null_value(self, mocker):
         # Some 1Password fields have no value (e.g. unset optional fields)
-        stdout = _op_item_stdout([
-            {"id": "username", "label": "username", "value": "admin"},
-            {"id": "notes", "label": "notes", "value": None},
-        ])
+        stdout = _op_item_stdout(
+            [
+                {"id": "username", "label": "username", "value": "admin"},
+                {"id": "notes", "label": "notes", "value": None},
+            ]
+        )
         mocker.patch("subprocess.run", return_value=Mock(returncode=0, stdout=stdout, stderr=""))
         values, error = fetch_fields("op://vault/item", ["username"])
         assert error is None
