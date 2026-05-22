@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Python 3.14 added to the CI test matrix and to the supported-versions classifiers in `pyproject.toml`
 - `epicenv secrets get <reference>` command — retrieve secrets from 1Password (and future providers) with `--fields`, `--format json|env|plain`, and `--silent` flags
 - `epicenv create-superuser` command — idempotent Django superuser creation that auto-detects credentials from stdin (piped JSON), `DJANGO_SUPERUSER_*` environment variables, or explicit `--username/--email/--password` flags; supports `--force` to update an existing user
 - `epicenv.secrets` module with `SecretProvider` abstract base class and `OnePasswordProvider` implementation, enabling future providers (AWS Secrets Manager, Vault, etc.)
