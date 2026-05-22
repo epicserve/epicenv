@@ -1,6 +1,6 @@
 [project]
 name = "epicenv"
-version = "1.4.0"
+version = "1.5.0"
 description = "Schema-based environment variable management for Python projects"
 readme = "README.md"
 authors = [
