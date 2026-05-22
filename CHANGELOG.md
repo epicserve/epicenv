@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [1.6.0] - 2026-05-22
+
 ### Added
 - Python 3.14 added to the CI test matrix and to the supported-versions classifiers in `pyproject.toml`
 - `epicenv secrets get <reference>` command — retrieve secrets from 1Password (and future providers) with `--fields`, `--format json|env|plain`, and `--silent` flags
