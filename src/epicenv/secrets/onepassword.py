@@ -69,6 +69,8 @@ def fetch_field(reference: str, timeout: int = 10) -> tuple[str | None, str | No
             error = result.stderr.strip() or "Unknown error"
             return None, f"Failed to read secret: {error}"
         return result.stdout.strip(), None
+    except FileNotFoundError:
+        return None, "1Password CLI not installed"
     except subprocess.TimeoutExpired:
         return None, "Timeout reading from 1Password"
     except Exception as e:
@@ -97,9 +99,22 @@ def fetch_fields(item_reference: str, fields: list[str], timeout: int = 10) -> t
     if not fields:
         return {}, None
 
+    # `op item get` doesn't accept `op://vault/item` references — it wants the item
+    # name/UUID with `--vault` as a separate flag. Parse the reference if present.
+    cmd = ["op", "item", "get"]
+    if item_reference.startswith("op://"):
+        parts = item_reference[len("op://") :].split("/")
+        if len(parts) != 2 or not all(parts):
+            return None, f"Invalid item reference '{item_reference}' (expected 'op://vault/item')"
+        vault, item = parts
+        cmd += [item, "--vault", vault]
+    else:
+        cmd.append(item_reference)
+    cmd += ["--format", "json"]
+
     try:
         result = subprocess.run(  # noqa: S603
-            ["op", "item", "get", item_reference, "--format", "json"],  # noqa: S607
+            cmd,
             capture_output=True,
             text=True,
             timeout=timeout,
@@ -107,6 +122,8 @@ def fetch_fields(item_reference: str, fields: list[str], timeout: int = 10) -> t
         if result.returncode != 0:
             error = result.stderr.strip() or "Unknown error"
             return None, f"Failed to read item: {error}"
+    except FileNotFoundError:
+        return None, "1Password CLI not installed"
     except subprocess.TimeoutExpired:
         return None, "Timeout reading from 1Password"
     except Exception as e:

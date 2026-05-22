@@ -135,6 +135,12 @@ class TestFetchField:
         fetch_field("op://vault/item/field", timeout=42)
         assert run.call_args.kwargs["timeout"] == 42
 
+    def test_op_not_installed(self, mocker):
+        mocker.patch("subprocess.run", side_effect=FileNotFoundError("op: command not found"))
+        value, error = fetch_field("op://vault/item/field")
+        assert value is None
+        assert error == "1Password CLI not installed"
+
 
 def _op_item_stdout(fields_list):
     """Build the JSON shape that `op item get --format json` returns."""
@@ -164,13 +170,26 @@ class TestFetchFields:
         assert values == {"username": "admin", "email": "admin@example.com", "password": "secret"}
         # All three fields should come from ONE subprocess call, not three
         assert run.call_count == 1
-        assert run.call_args.args[0] == ["op", "item", "get", "op://vault/item", "--format", "json"]
+        assert run.call_args.args[0] == ["op", "item", "get", "item", "--vault", "vault", "--format", "json"]
 
     def test_strips_trailing_slash(self, mocker):
         stdout = _op_item_stdout([{"id": "password", "label": "password", "value": "v"}])
         run = mocker.patch("subprocess.run", return_value=Mock(returncode=0, stdout=stdout, stderr=""))
         fetch_fields("op://vault/item/", ["password"])
-        assert run.call_args.args[0][3] == "op://vault/item"
+        assert run.call_args.args[0] == ["op", "item", "get", "item", "--vault", "vault", "--format", "json"]
+
+    def test_bare_item_name_passed_through(self, mocker):
+        stdout = _op_item_stdout([{"id": "password", "label": "password", "value": "v"}])
+        run = mocker.patch("subprocess.run", return_value=Mock(returncode=0, stdout=stdout, stderr=""))
+        fetch_fields("MyItem", ["password"])
+        assert run.call_args.args[0] == ["op", "item", "get", "MyItem", "--format", "json"]
+
+    def test_invalid_reference_rejected(self, mocker):
+        run = mocker.patch("subprocess.run")
+        values, error = fetch_fields("op://vault", ["password"])
+        assert values is None
+        assert "Invalid item reference" in error
+        run.assert_not_called()
 
     def test_field_matched_by_label(self, mocker):
         stdout = _op_item_stdout([
@@ -231,6 +250,12 @@ class TestFetchFields:
         assert error is None
         assert values == {}
         run.assert_not_called()
+
+    def test_op_not_installed(self, mocker):
+        mocker.patch("subprocess.run", side_effect=FileNotFoundError("op: command not found"))
+        values, error = fetch_fields("op://vault/item", ["username"])
+        assert values is None
+        assert error == "1Password CLI not installed"
 
     def test_skips_fields_with_null_value(self, mocker):
         # Some 1Password fields have no value (e.g. unset optional fields)

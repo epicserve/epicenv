@@ -106,10 +106,37 @@ class TestSecretsGetMultipleFields:
 
 
 class TestSecretsGetAvailabilityErrors:
-    def test_provider_unavailable_prints_setup_instructions(self, mocker):
-        _patch_provider(mocker, available=(False, "1Password CLI not installed"))
+    def test_not_installed_prints_setup_instructions(self, mocker):
+        _patch_provider(mocker, field=(None, "1Password CLI not installed"))
         result = CliRunner().invoke(cli, ["secrets", "get", "op://vault/item/field"])
         assert result.exit_code == 1
-        assert "1Password CLI not available" in result.output
         assert "1Password CLI not installed" in result.output
         assert "op signin" in result.output
+
+    def test_not_signed_in_prints_setup_instructions(self, mocker):
+        _patch_provider(
+            mocker,
+            fields=(None, "Failed to read item: [ERROR] you aren't currently signed in"),
+        )
+        result = CliRunner().invoke(
+            cli, ["secrets", "get", "op://vault/item", "--fields", "username"]
+        )
+        assert result.exit_code == 1
+        assert "op signin" in result.output
+
+    def test_normal_lookup_error_omits_setup_instructions(self, mocker):
+        _patch_provider(mocker, fields=(None, "Failed to read item: item not found"))
+        result = CliRunner().invoke(
+            cli, ["secrets", "get", "op://vault/missing", "--fields", "username"]
+        )
+        assert result.exit_code == 1
+        assert "item not found" in result.output
+        assert "Setup instructions" not in result.output
+
+    def test_no_eager_is_available_call(self, mocker):
+        provider = _patch_provider(mocker, fields=({"username": "admin"}, None))
+        result = CliRunner().invoke(
+            cli, ["secrets", "get", "op://vault/item", "--fields", "username"]
+        )
+        assert result.exit_code == 0
+        provider.is_available.assert_not_called()
