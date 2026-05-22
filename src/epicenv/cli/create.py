@@ -9,7 +9,7 @@ from .._config import find_pyproject_toml, get_schema_path
 from .._env import get_dot_env_file_str
 
 
-def create_env_file(env_path: Path, overwrite: bool, backup: bool):
+def create_env_file(env_path: Path, overwrite: bool, backup: bool, minimal: bool = False):
     """
     Create a .env file from pyproject.toml schema.
 
@@ -17,6 +17,7 @@ def create_env_file(env_path: Path, overwrite: bool, backup: bool):
         env_path: Path to the .env file to create
         overwrite: If True, overwrite without asking
         backup: If True and file exists, create backup before overwriting
+        minimal: If True, omit help text/comments and skip variables with defaults
     """
     # Find pyproject.toml
     pyproject_path = find_pyproject_toml()
@@ -52,7 +53,7 @@ def create_env_file(env_path: Path, overwrite: bool, backup: bool):
 
     # Generate .env file content
     try:
-        dot_env_content = get_dot_env_file_str()
+        dot_env_content = get_dot_env_file_str(minimal=minimal)
     except Exception as e:
         click.echo(click.style("Error generating .env file: ", fg="red", bold=True) + str(e))
         raise click.Abort() from e

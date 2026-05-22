@@ -10,7 +10,7 @@ from typing import Any
 
 import environs
 
-from ._config import find_pyproject_toml, load_schema
+from ._config import find_pyproject_toml, get_schema_path, load_schema
 from ._exceptions import UndefinedVariableError
 
 env_variables: dict[str, Any] = {}
@@ -192,28 +192,59 @@ class Env:
         return self._env.read_env(*args, **kwargs)
 
 
-def get_dot_env_file_str() -> str:
+def _build_header(minimal: bool, source_path: Path | None) -> str:
+    """Render the leading comment block for a generated .env file."""
+    timestamp = datetime.now(UTC).isoformat()
+
+    if source_path is not None:
+        try:
+            source_display = str(source_path.relative_to(Path.cwd()))
+        except ValueError:
+            source_display = str(source_path)
+    else:
+        source_display = "pyproject.toml or .env.toml"
+
+    if minimal:
+        return (
+            f"# This is a minimal .env file generated on {timestamp}.\n"
+            "# It contains only required variables (those without defaults).\n"
+            "# To generate a full .env with all variables, type hints, and help text, run:\n"
+            "#   epicenv create\n"
+            f"# For variable documentation (help_text, type, default), see {source_display}.\n\n"
+        )
+
+    return (
+        f"# This is an initial .env file generated on {timestamp}. Any environment variable with a default\n"
+        "# can be safely removed or commented out. Any variable without a default must be set.\n\n"
+    )
+
+
+def get_dot_env_file_str(minimal: bool = False) -> str:
     """
     Generate a .env file string from either schema or runtime registration.
 
     Tries to load from pyproject.toml schema first, falls back to runtime-registered
     env_variables dict (for backward compatibility with Django management commands).
 
+    Args:
+        minimal: If True, emit only variables without defaults and omit all
+            comments (header, help text, type, default lines).
+
     Returns:
         String content for .env file
     """
-    env_str = (
-        f"# This is an initial .env file generated on {datetime.now(UTC).isoformat()}. Any environment variable with a default\n"  # noqa: E501
-        "# can be safely removed or commented out. Any variable without a default must be set.\n\n"
-    )
-
     # Try to load from schema first
     schema_path = find_pyproject_toml()
     variables_to_process = {}
+    source_path: Path | None = None
 
     if schema_path and schema_path.exists():
         # Load from schema
         schema = load_schema(schema_path)
+        try:
+            source_path = get_schema_path(schema_path)
+        except Exception:  # noqa: S110
+            source_path = schema_path
         for key, schema_def in schema.items():
             variables_to_process[key] = {
                 "type": schema_def.get("type", "str"),
@@ -234,17 +265,25 @@ def get_dot_env_file_str() -> str:
             if key not in variables_to_process:
                 variables_to_process[key] = data
 
+    env_str = _build_header(minimal=minimal, source_path=source_path)
+
     for key, data in variables_to_process.items():
+        has_default = data.get("default") is not None
+
+        if minimal and has_default:
+            continue
+
         initial = data.get("initial")
         initial_func = data.get("initial_func")
         val = ""
 
-        if data.get("help_text") is not None:
-            env_str += f"# {data['help_text']}\n"
-        env_str += f"# type: {data['type']}\n"
+        if not minimal:
+            if data.get("help_text") is not None:
+                env_str += f"# {data['help_text']}\n"
+            env_str += f"# type: {data['type']}\n"
 
-        if data.get("default") is not None:
-            env_str += f"# default: {data['default']}\n"
+            if has_default:
+                env_str += f"# default: {data['default']}\n"
 
         if initial_func:
             if callable(initial_func):
@@ -272,10 +311,11 @@ def get_dot_env_file_str() -> str:
         elif initial is not None:
             val = initial
 
-        if val == "" and data.get("default") is not None:
-            env_str += f"# {key}={val}\n\n"
+        line_end = "\n" if minimal else "\n\n"
+        if val == "" and has_default:
+            env_str += f"# {key}={val}{line_end}"
         else:
-            env_str += f"{key}={val}\n\n"
+            env_str += f"{key}={val}{line_end}"
     return env_str
 
 

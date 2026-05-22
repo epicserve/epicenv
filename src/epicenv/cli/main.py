@@ -29,7 +29,13 @@ def cli():
 @click.option("--path", type=click.Path(), default=".env", help="Path to .env file to create")
 @click.option("--overwrite", is_flag=True, help="Overwrite existing .env file without backup")
 @click.option("--backup/--no-backup", default=True, help="Backup existing .env file (default: yes)")
-def create(path: str, overwrite: bool, backup: bool):
+@click.option(
+    "--min",
+    "minimal",
+    is_flag=True,
+    help="Minimal output: only required variables (no defaults), no help text or comments",
+)
+def create(path: str, overwrite: bool, backup: bool, minimal: bool):
     """
     Create a .env file from the project schema.
 
@@ -40,7 +46,7 @@ def create(path: str, overwrite: bool, backup: bool):
     from .create import create_env_file
 
     try:
-        create_env_file(Path(path), overwrite, backup)
+        create_env_file(Path(path), overwrite, backup, minimal=minimal)
     except ConfigError as e:
         _handle_config_error(e)
 

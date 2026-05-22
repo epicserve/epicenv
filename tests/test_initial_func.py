@@ -192,6 +192,95 @@ args = ["op://vault/item/field"]
         # Verify the secret was fetched successfully
         assert "TEST_SECRET=test_value" in result
 
+    def test_get_dot_env_file_str_minimal_mode(self, mocker, tmp_path):
+        """Minimal mode omits comments and variables with defaults."""
+        pyproject_file = tmp_path / "pyproject.toml"
+        pyproject_file.write_text(
+            """
+[tool.epicenv.variables.MIN_REQUIRED_VAR]
+type = "str"
+required = true
+help_text = "A required variable"
+
+[tool.epicenv.variables.MIN_REQUIRED_WITH_INITIAL]
+type = "str"
+required = true
+help_text = "A required variable with an initial value"
+initial = "abc123"
+
+[tool.epicenv.variables.MIN_OPTIONAL_VAR]
+type = "str"
+default = "some_default"
+help_text = "An optional variable"
+
+[tool.epicenv.variables.MIN_OPTIONAL_BOOL]
+type = "bool"
+default = false
+initial = "on"
+"""
+        )
+
+        mocker.patch("epicenv._env.find_pyproject_toml", return_value=pyproject_file)
+
+        result = get_dot_env_file_str(minimal=True)
+
+        # Header explains this is the minimal version and how to get the full one
+        assert "This is a minimal .env file" in result
+        assert "epicenv create" in result
+        # Header points at the schema file used to generate it
+        assert "pyproject.toml" in result
+        # No per-variable help_text, type, or default comments
+        assert "# A required variable" not in result
+        assert "# type:" not in result
+        assert "# default:" not in result
+        # Required vars are present
+        assert "MIN_REQUIRED_VAR=\n" in result
+        assert "MIN_REQUIRED_WITH_INITIAL=abc123\n" in result
+        # Variables with defaults are skipped entirely
+        assert "MIN_OPTIONAL_VAR" not in result
+        assert "MIN_OPTIONAL_BOOL" not in result
+
+    def test_get_dot_env_file_str_minimal_mode_points_to_env_toml(self, mocker, tmp_path):
+        """Minimal mode header references .env.toml when the schema lives there."""
+        pyproject_file = tmp_path / "pyproject.toml"
+        pyproject_file.write_text('[project]\nname = "demo"\nversion = "0.0.0"\n')
+        (tmp_path / ".env.toml").write_text(
+            '[variables]\nMIN_API_KEY = { type = "str", required = true }\n'
+        )
+
+        mocker.patch("epicenv._env.find_pyproject_toml", return_value=pyproject_file)
+
+        result = get_dot_env_file_str(minimal=True)
+
+        assert ".env.toml" in result
+        assert "MIN_API_KEY=\n" in result
+
+    def test_get_dot_env_file_str_default_mode_unchanged(self, mocker, tmp_path):
+        """Default (non-minimal) mode still emits comments and all variables."""
+        pyproject_file = tmp_path / "pyproject.toml"
+        pyproject_file.write_text(
+            """
+[tool.epicenv.variables.DEFAULT_REQUIRED_VAR]
+type = "str"
+required = true
+help_text = "A required variable"
+
+[tool.epicenv.variables.DEFAULT_OPTIONAL_VAR]
+type = "str"
+default = "some_default"
+help_text = "An optional variable"
+"""
+        )
+
+        mocker.patch("epicenv._env.find_pyproject_toml", return_value=pyproject_file)
+
+        result = get_dot_env_file_str()
+
+        assert "# A required variable" in result
+        assert "# An optional variable" in result
+        assert "DEFAULT_REQUIRED_VAR=\n" in result
+        assert "# DEFAULT_OPTIONAL_VAR=\n" in result
+
     def test_get_dot_env_file_str_with_onepassword_fallback(self, mocker, tmp_path, capsys):
         """Test .env generation with 1Password fallback."""
         # Create a temporary pyproject.toml
