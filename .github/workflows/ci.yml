@@ -26,6 +26,8 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
+          python-version: "3.13"
+          cache-suffix: lint
 
       # uv run uses the ruff version pinned in uv.lock, so a new ruff release
       # can never break CI on its own.
@@ -54,9 +56,8 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
-
-      - name: Set up Python ${{ matrix.python-version }}
-        run: uv python install ${{ matrix.python-version }}
+          python-version: ${{ matrix.python-version }}
+          cache-suffix: ${{ matrix.environs-version }}
 
       - name: Run tests
         run: uv run --python ${{ matrix.python-version }} --with "environs[django]==${{ matrix.environs-version }}" pytest --cov --cov-config=pyproject.toml
