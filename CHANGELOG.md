@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [1.6.3] - 2026-09-04
+
 ### Added
 - README section on using epicenv with [Mise](https://mise.jdx.dev/): load the generated `.env` via `env._.file`, keep the schema as the source of truth, and do not point Mise at `.env.toml`
 - `epicenv create` prints a one-line Mise hint after a successful write: add `[env] _.file = "<path>"` to `mise.toml`
@@ -96,6 +99,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed package from `envutil` to `epicenv` (PyPI name conflict)
 - Complete rewrite with schema-first approach
 
+[1.6.3]: https://github.com/epicserve/epicenv/releases/tag/v1.6.3
 [1.6.1]: https://github.com/epicserve/epicenv/releases/tag/v1.6.1
 [1.6.0]: https://github.com/epicserve/epicenv/releases/tag/v1.6.0
 [1.5.0]: https://github.com/epicserve/epicenv/releases/tag/v1.5.0

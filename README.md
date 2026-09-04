@@ -19,6 +19,7 @@ Stop maintaining `.env.example` files that drift out of sync with reality. epice
 - [Validation](#validation)
 - [Using with Mise](#using-with-mise)
 - [Documentation](#documentation)
+- [Development](#development)
 
 ## Installation
 
