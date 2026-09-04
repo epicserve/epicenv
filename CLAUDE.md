@@ -1,44 +1,36 @@
 # CLAUDE.md - Release Workflow
 
-When the user says "make a release", follow this process:
+When the user asks to "make a release", follow these steps:
 
-### 1. Update Changelog
+1. **Update CHANGELOG.md**: add a new `## [X.Y.Z] - YYYY-MM-DD` section at the top
+   (below the header) using today's date, with `### Added` / `### Changed` / `### Fixed`
+   subsections as appropriate. Use `git log v<previous>..HEAD --oneline` to see what
+   shipped since the last release. Add the release link at the bottom of the file.
 
-Edit [CHANGELOG.md](CHANGELOG.md) - add new version section at the top with today's date (YYYY-MM-DD format)
+2. **Bump the version**: run `just version_bump {major|minor|patch}` — ask the user
+   which bump they want if they didn't specify. This runs `uv version --bump` (updating
+   `pyproject.toml` and `uv.lock`), stages those files plus `CHANGELOG.md`, commits
+   `Bump version to vX.Y.Z`, and creates the annotated tag `vX.Y.Z`.
 
-### 2. Bump Version
+3. **Push**: `git push origin main vX.Y.Z`
 
-```bash
-uv version --bump {major|minor|patch}
-```
+4. **Automation takes over**: the tag push triggers `.github/workflows/release.yml`,
+   which runs lint + tests, builds and smoke-tests the wheel, publishes to PyPI via
+   trusted publishing (OIDC — there is no PyPI token secret), and then creates the
+   GitHub Release with auto-generated notes.
 
-Ask user which type if not specified. This updates both `pyproject.toml` and `uv.lock`.
+5. **Verify**: the Actions run is green, https://pypi.org/project/epicenv/ shows
+   the new version, and `uvx epicenv@latest --version` prints it.
 
-### 3. Commit and Tag
+## Notes
 
-```bash
-git add pyproject.toml uv.lock CHANGELOG.md
-git commit -m "Bump version to v{VERSION}"
-git tag -a "v{VERSION}" -m "Release v{VERSION}"
-```
-
-### 4. Push
-
-```bash
-git push origin main
-git push origin v{VERSION}
-```
-
-### 5. Create GitHub Release
-
-```bash
-gh release create v{VERSION} --generate-notes
-```
-
-Or manually at https://github.com/epicserve/epicenv/releases/new
-
-### 6. Verify
-
-GitHub Actions will automatically publish to PyPI. Check:
-- https://github.com/epicserve/epicenv/actions
-- https://pypi.org/project/epicenv/
+- The version number lives only in `pyproject.toml`. `click.version_option` reads it
+  from installed package metadata at runtime — never hand-edit a version string anywhere
+  else.
+- PyPI publishing uses a trusted publisher bound to repo `epicserve/epicenv`,
+  workflow `release.yml`, environment `pypi`. If publishing fails with an OIDC error,
+  check that those three values still match exactly on pypi.org.
+- If the release workflow fails **before** the publish step: fix the problem, delete the
+  tag (`git tag -d vX.Y.Z && git push origin :refs/tags/vX.Y.Z`), and start over.
+  If it fails **after** publishing: do not reuse the version number — PyPI uploads are
+  write-once. Bump patch and release again.

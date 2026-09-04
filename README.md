@@ -2,7 +2,7 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/epicenv)](https://pypi.org/project/epicenv/)
 [![Python versions](https://img.shields.io/pypi/pyversions/epicenv)](https://pypi.org/project/epicenv/)
-[![Tests](https://github.com/epicserve/epicenv/actions/workflows/test.yml/badge.svg)](https://github.com/epicserve/epicenv/actions/workflows/test.yml)
+[![CI](https://github.com/epicserve/epicenv/actions/workflows/ci.yml/badge.svg)](https://github.com/epicserve/epicenv/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Stop maintaining `.env.example` files that drift out of sync with reality. epicenv is a schema-based environment variable manager for Python: declare your variables once in `pyproject.toml` (or a dedicated `.env.toml`) with types, defaults, initializers, and help text. Generate fresh `.env` files for new contributors with one command, and catch missing or malformed values before they hit production.
@@ -282,6 +282,16 @@ Do **not** point Mise at epicenv's `.env.toml`. That file is a schema (`type`, `
 - [1Password Integration](docs/1password.md) - Setup and troubleshooting
 - [Field Mapping Guide](docs/field-mapping.md) - Transform and map secrets with jq
 - [Django Integration](docs/django.md) - Django-specific features and legacy commands
+
+## Development
+
+```console
+$ uv sync
+$ uv run pytest
+$ uv run epicenv --help
+```
+
+With [just](https://github.com/casey/just) installed, `just format`, `just lint`, and `just test` wrap the common tasks, and `just pre_commit` runs all three. Releases are cut with `just version_bump <major|minor|patch>` followed by pushing the tag — see [CLAUDE.md](CLAUDE.md) for the full release process.
 
 ## Contributing
 

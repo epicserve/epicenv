@@ -17,20 +17,24 @@ format: format_just format_python
 
 @format_python:
     just _start_command "Formatting Python"
-    uvx ruff format
+    uv run ruff check --select I --fix
+    uv run ruff format
 
 @lint: lint_python
 
 @lint_python:
     just _start_command "Linting Python"
-    uvx ruff check
+    uv run ruff check
+    uv run ruff format --check
 
 @pre_commit: format lint test
 
+# Releases are automated: bump, push the tag, GitHub Actions publishes to PyPI
 publish:
     #!/usr/bin/env bash
-    echo -e '\nTo publish to PyPI, first run `just version_bump <major|minor|patch>` and push up the '\
-    "changes, then create a release in GitHub (https://github.com/epicserve/django-envtools/releases).\n"
+    echo -e '\nReleases are automated. Run `just version_bump <major|minor|patch>`,'\
+    'then `git push origin main vX.Y.Z`. The tag push publishes to PyPI and creates'\
+    'the GitHub Release. See CLAUDE.md for the full process.\n'
 
 @test *FLAGS:
     uv run pytest {{ FLAGS }}
@@ -39,16 +43,20 @@ publish:
     uv run pytest --cov --cov-config=pyproject.toml --cov-report=html
     open htmlcov/index.html
 
-# Update the version of the project (bump can be 'major', 'minor', or 'patch')
+# Bump the version (bump can be 'major', 'minor', or 'patch'), commit, and tag
 version_bump bump:
     #!/usr/bin/env bash
+    set -euo pipefail
     just _start_command "Bumping version"
-    OLD_VERSION=$(uv version | awk '{print $2}')
-    echo "Current version: v${OLD_VERSION}"
+    if [ -n "$(git status --porcelain -- ':!CHANGELOG.md')" ]; then
+        echo "Error: working tree has changes beyond CHANGELOG.md. Commit or stash them first." >&2
+        exit 1
+    fi
+    OLD_VERSION=$(uv version --short)
     uv version --bump {{ bump }}
-    git add pyproject.toml uv.lock
-    NEW_VERSION=$(uv version | awk '{print $2}')
-    COMMIT_MESSAGE="Bumped version: v${OLD_VERSION} → v${NEW_VERSION}"
-    git commit -m "${COMMIT_MESSAGE}"
+    NEW_VERSION=$(uv version --short)
+    git add pyproject.toml uv.lock CHANGELOG.md
+    git commit -m "Bump version to v${NEW_VERSION}"
     git tag -a "v${NEW_VERSION}" -m "Release v${NEW_VERSION}"
-    just _start_command "${COMMIT_MESSAGE}"
+    echo "Bumped v${OLD_VERSION} → v${NEW_VERSION}."
+    echo "Now run: git push origin main v${NEW_VERSION}"

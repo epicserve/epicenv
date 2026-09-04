@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - README section on using epicenv with [Mise](https://mise.jdx.dev/): load the generated `.env` via `env._.file`, keep the schema as the source of truth, and do not point Mise at `.env.toml`
 - `epicenv create` prints a one-line Mise hint after a successful write: add `[env] _.file = "<path>"` to `mise.toml`
 
+### Changed
+- Releases are now tag-driven: pushing `vX.Y.Z` runs CI, smoke-tests the wheel, publishes to PyPI via trusted publishing (OIDC, no API token), and then creates the GitHub Release
+
 
 ## [1.6.1] - 2026-05-22
 
@@ -92,3 +95,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Renamed package from `envutil` to `epicenv` (PyPI name conflict)
 - Complete rewrite with schema-first approach
+
+[1.6.1]: https://github.com/epicserve/epicenv/releases/tag/v1.6.1
+[1.6.0]: https://github.com/epicserve/epicenv/releases/tag/v1.6.0
+[1.5.0]: https://github.com/epicserve/epicenv/releases/tag/v1.5.0
+[1.4.0]: https://github.com/epicserve/epicenv/releases/tag/v1.4.0
+[1.3.0]: https://github.com/epicserve/epicenv/releases/tag/v1.3.0
+[1.2.0]: https://github.com/epicserve/epicenv/releases/tag/v1.2.0
+[1.1.0]: https://github.com/epicserve/epicenv/releases/tag/v1.1.0
+[1.0.0]: https://github.com/epicserve/epicenv/releases/tag/v1.0.0

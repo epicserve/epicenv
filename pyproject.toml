@@ -7,6 +7,8 @@ authors = [
     { name = "Brent O'Connor", email = "brent@epicserve.com" }
 ]
 requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
 dependencies = [
     "environs>=14.0.0",
     "click>=8.0.0",
@@ -15,7 +17,6 @@ dependencies = [
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
@@ -39,7 +40,10 @@ django = [
 epicenv = "epicenv.cli.main:cli"
 
 [project.urls]
-Source = "https://github.com/epicserve/epicenv"
+Homepage = "https://github.com/epicserve/epicenv"
+Repository = "https://github.com/epicserve/epicenv"
+Issues = "https://github.com/epicserve/epicenv/issues"
+Changelog = "https://github.com/epicserve/epicenv/blob/main/CHANGELOG.md"
 Documentation = "https://github.com/epicserve/epicenv"
 
 [build-system]
@@ -54,6 +58,7 @@ dev = [
     "pytest-django>=4.9.0",
     "pytest-mock>=3.14.0",
     "pytest>=8.3.3",
+    "ruff>=0.16",
 ]
 
 [tool.pytest.ini_options]
@@ -62,6 +67,7 @@ pythonpath = "test_project"
 
 [tool.ruff]
 line-length = 120
+extend-exclude = ["docs"]
 
 [tool.ruff.lint]
 select = [
