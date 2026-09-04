@@ -61,7 +61,10 @@ def create_env_file(env_path: Path, overwrite: bool, backup: bool, minimal: bool
     # Write the file
     env_path.write_text(dot_env_content)
 
+    rel = env_path.relative_to(cwd)
+    click.echo(click.style("Success! ", fg="green", bold=True) + f"Created {click.style(str(rel), fg='cyan')}")
     click.echo(
-        click.style("Success! ", fg="green", bold=True)
-        + f"Created {click.style(str(env_path.relative_to(cwd)), fg='cyan')}"
+        "To load this file in Mise, add "
+        + click.style(f'[env] _.file = "{rel.as_posix()}"', fg="cyan")
+        + " to mise.toml."
     )

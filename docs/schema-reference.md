@@ -12,6 +12,8 @@ epicenv looks for the schema in this order:
 
 If variables are defined in *both* `pyproject.toml` and an external file, epicenv errors out — pick one location.
 
+`.env.toml` is a schema of metadata, not dotenv values. Tools that load environment files (for example Mise's `env._.file`) should point at the generated `.env`, not at `.env.toml`.
+
 ### External file format
 
 In a dedicated file, variables live under a top-level `[variables]` table. Both inline and TOML table forms work:

@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [Unreleased]
+
+### Added
+- README section on using epicenv with [Mise](https://mise.jdx.dev/): load the generated `.env` via `env._.file`, keep the schema as the source of truth, and do not point Mise at `.env.toml`
+- `epicenv create` prints a one-line Mise hint after a successful write: add `[env] _.file = "<path>"` to `mise.toml`
+
+
 ## [1.6.1] - 2026-05-22
 
 ### Fixed

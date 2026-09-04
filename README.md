@@ -17,6 +17,7 @@ Stop maintaining `.env.example` files that drift out of sync with reality. epice
 - [Built-in Initializers](#built-in-initializers)
 - [Framework Examples](#framework-examples)
 - [Validation](#validation)
+- [Using with Mise](#using-with-mise)
 - [Documentation](#documentation)
 
 ## Installation
@@ -253,6 +254,27 @@ epicenv validates that variables used in code are defined in your schema. Contro
 ```bash
 EPICENV_VALIDATE=strict python app.py  # Always validate
 ```
+
+## Using with Mise
+
+[Mise](https://mise.jdx.dev/) manages tool versions and injects environment variables into your shell when you `cd` into a project. epicenv remains the source of truth for **application** variables: the schema, `.env` generation, typed Python accessors, and validation. Mise does not replace that layer.
+
+They compose through the generated `.env` file:
+
+```toml
+# mise.toml
+[env]
+_.file = ".env"
+```
+
+Typical workflow:
+
+1. Declare variables in `[tool.epicenv.variables]` or `.env.toml`.
+2. Run `epicenv create` to generate a local `.env` (gitignored).
+3. Mise loads that file into the shell on `cd`, `mise exec`, and tasks.
+4. Keep `env.read_env()` in Python so Docker, CI, and teammates without Mise still load the same file. Existing shell values (including those Mise set) are left alone.
+
+Do **not** point Mise at epicenv's `.env.toml`. That file is a schema (`type`, `help_text`, `initial_func`), not a bag of values. Keep schema in `.env.toml` or `pyproject.toml`, values in `.env`, and `_.file = ".env"` in `mise.toml`.
 
 ## Documentation
 
